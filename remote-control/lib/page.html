@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DSH Remote</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: #0f1115; color: #e6e6e6; }
+  header { padding: 14px 16px; border-bottom: 1px solid #22262e; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; background: #0f1115; z-index: 1; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; flex: 1; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 14px; }
+  .card { background: #171a21; border: 1px solid #262b36; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+  label { display: block; font-size: 12px; color: #9aa3b2; margin-bottom: 6px; }
+  input[type=password], input[type=text], textarea { width: 100%; background: #0f1115; border: 1px solid #2c323f; color: #e6e6e6; border-radius: 8px; padding: 10px; font-size: 15px; font-family: inherit; }
+  textarea { min-height: 90px; resize: vertical; }
+  .row { display: flex; gap: 8px; margin-top: 10px; }
+  button { flex: 1; background: #3b82f6; color: #fff; border: 0; border-radius: 8px; padding: 11px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  button.secondary { background: #262b36; color: #e6e6e6; font-weight: 500; }
+  button:disabled { opacity: .5; }
+  .status { font-size: 13px; color: #9aa3b2; white-space: nowrap; }
+  .status .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #555; margin-right: 6px; }
+  .status.running .dot { background: #22c55e; }
+  .hint { font-size: 12px; color: #6b7280; margin-top: 6px; line-height: 1.5; }
+  #log { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: 13px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; max-height: 60vh; overflow-y: auto; }
+  .msg { margin-bottom: 4px; }
+  .msg.user { color: #93c5fd; }
+  .msg.assistant { color: #e6e6e6; }
+  .msg.tool { color: #fbbf24; }
+  .msg.meta { color: #6b7280; }
+  .msg.err { color: #f87171; }
+  #sessions button { margin: 4px; flex: none; }
+</style>
+</head>
+<body>
+  <header><h1>DSH Remote</h1><span id="status" class="status"><span class="dot"></span><span id="statusText">未连接</span></span></header>
+  <div class="wrap">
+    <div class="card">
+      <label for="token">访问令牌 (Access Token)</label>
+      <input id="token" type="password" placeholder="粘贴 token" autocomplete="off">
+      <div class="row">
+        <button id="saveToken" class="secondary">保存令牌</button>
+        <button id="refresh" class="secondary">刷新会话</button>
+      </div>
+      <div class="hint">令牌存在手机浏览器本地,一次保存长期有效(换浏览器或清缓存才需要重输)。</div>
+    </div>
+    <div class="card">
+      <label for="task">任务</label>
+      <textarea id="task" placeholder="描述你想让 DSH 执行的任务…"></textarea>
+      <div class="row"><button id="send">发送并执行</button></div>
+    </div>
+    <div class="card">
+      <label>会话</label>
+      <div id="sessions" class="status">（尚未加载）</div>
+    </div>
+    <div class="card">
+      <label>输出</label>
+      <div id="log"></div>
+    </div>
+  </div>
+<script>
+  const $ = (id) => document.getElementById(id)
+  const tokenInput = $('token')
+  tokenInput.value = localStorage.getItem('remote_token') || ''
+
+  function token() { return tokenInput.value.trim() }
+
+  function setStatus(running, text) {
+    $('status').className = 'status' + (running ? ' running' : '')
+    $('statusText').textContent = text
+  }
+
+  $('saveToken').onclick = () => {
+    localStorage.setItem('remote_token', token())
+    setStatus(false, '令牌已保存')
+  }
+
+  function authHeaders() {
+    return token() ? { authorization: 'Bearer ' + token() } : {}
+  }
+
+  function clearLog() { $('log').textContent = '' }
+  function log(text, cls) {
+    const el = document.createElement('div')
+    if (cls) el.className = 'msg ' + cls
+    el.textContent = text
+    $('log').appendChild(el)
+    $('log').scrollTop = $('log').scrollHeight
+  }
+
+  let es = null
+  function watch(sessionId) {
+    if (es) es.close()
+    clearLog()
+    setStatus(true, '运行中 (' + sessionId.slice(0, 8) + ')')
+    const t = encodeURIComponent(token())
+    es = new EventSource('/remote/events?sessionId=' + encodeURIComponent(sessionId) + '&token=' + t)
+    es.onmessage = (ev) => {
+      let data
+      try { data = JSON.parse(ev.data) } catch { return }
+      switch (data.type) {
+        case 'hello': clearLog(); return
+        case 'turn/start': log('—— 回合 ' + data.turn + ' ——', 'meta'); return
+        case 'turn/end': log('—— 回合结束 (' + data.reason + ') ——', 'meta'); return
+        case 'user/message': if (data.text) log('你: ' + data.text, 'user'); return
+        case 'assistant/message': if (data.text) log(data.text, 'assistant'); return
+        case 'tool/call': log('🔧 ' + data.tool + ' ' + (data.arguments || ''), 'tool'); return
+        case 'tool/result': log((data.isError ? '❌' : '✅') + ' 工具返回', data.isError ? 'err' : 'meta'); return
+        case 'status':
+          if (data.status === 'idle') setStatus(false, '空闲'); else setStatus(true, '运行中'); return
+      }
+    }
+    es.onerror = () => { setStatus(false, '流断开,重连中…') }
+  }
+
+  $('send').onclick = async () => {
+    const text = $('task').value.trim()
+    if (!text) return
+    if (!token()) { setStatus(false, '请先粘贴令牌'); return }
+    $('send').disabled = true
+    try {
+      const res = await fetch('/remote/task', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ text }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setStatus(false, '错误: ' + (data.error || res.status)); return }
+      watch(data.sessionId)
+      refreshSessions()
+    } catch (e) {
+      setStatus(false, '请求失败: ' + e.message)
+    } finally {
+      $('send').disabled = false
+    }
+  }
+
+  async function refreshSessions() {
+    if (!token()) return
+    try {
+      const res = await fetch('/remote/sessions', { headers: authHeaders() })
+      const data = await res.json()
+      const box = $('sessions')
+      box.textContent = ''
+      const list = data.sessions || []
+      if (!list.length) { box.textContent = '（无会话）'; return }
+      for (const s of list) {
+        const el = document.createElement('button')
+        el.className = 'secondary'
+        el.textContent = s.id.slice(0, 8) + ' · ' + s.status
+        el.onclick = () => watch(s.id)
+        box.appendChild(el)
+      }
+    } catch {}
+  }
+  $('refresh').onclick = refreshSessions
+</script>
+</body>
+</html>

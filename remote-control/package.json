@@ -1,0 +1,21 @@
+{
+  "name": "dsh-remote-control",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal HTTP + SSE remote-control surface for driving a DSH agent from a phone.",
+  "main": "lib/host.js",
+  "exports": {
+    ".": "./lib/host.js",
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-agent": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-llm": "^0.1.0-rc.6"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

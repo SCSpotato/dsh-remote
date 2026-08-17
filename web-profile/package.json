@@ -1,0 +1,21 @@
+{
+  "name": "dsh-profile-web",
+  "private": true,
+  "description": "DSH Remote 的 web profile 部署模板：复制到 ~/.dsh/profiles/web/，把 dsh-remote-control 的 file: 路径改成你 clone 下来的绝对路径后 npm install。",
+  "dependencies": {
+    "@liustack/modlens": "^3.16.4",
+    "dsh-better-sidebar": "^0.12.1",
+    "dsh-remote-control": "file:C:/path/to/dsh-remote/remote-control"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "@liustack/modlens",
+        "dsh-better-sidebar",
+        "dsh-remote-control"
+      ]
+    }
+  }
+}

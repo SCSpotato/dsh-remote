@@ -1,0 +1,39 @@
+# ---- Android / Gradle 构建产物 ----
+.gradle/
+.kotlin/
+build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.aab
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/
+
+# ---- 签名私钥（绝不要提交）----
+keystore.properties
+*.keystore
+*.jks
+
+# ---- 二进制产物（APK 走 GitHub Releases 分发，不进 git）----
+apk/
+*.apk
+
+# ---- IDE ----
+.idea/
+*.iml
+.vscode/
+
+# ---- Node / 依赖 ----
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# ---- 系统 ----
+.DS_Store
+Thumbs.db
+desktop.ini

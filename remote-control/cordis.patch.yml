@@ -1,0 +1,6 @@
+# dsh-remote-control bundle patch. Host-only plugin: the package root export
+# (lib/host.js) registers HTTP + SSE routes on the web profile's `webServer`.
+# No client half.
+- insert:
+    - id: remote-control
+      name: dsh-remote-control
