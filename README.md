@@ -1,8 +1,10 @@
 # DSH Remote
 
-在手机上原生操控 [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/DeepSeek-Harness) 的 Android 客户端。不是 WebView 套壳，而是用 **Kotlin + Jetpack Compose** 重写的原生 App，通过 HTTPS + WebSocket 直连你电脑上运行的 DSH 宿主，随时随地在手机上继续对话、看轨迹、处理审批。
+> 一千万以内，最好的遥控器。
 
-> 一句话：电脑跑 DSH，手机当遥控器。Tailscale 组网后，人在外面也能用。
+来小d给我整个活，哇~哇~哇~哇~哇。
+
+希望你用的开心^_^
 
 ---
 
