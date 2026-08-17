@@ -45,6 +45,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
     val notifyDone by vm.notifyDone.collectAsState()
     val notifyPrompt by vm.notifyPrompt.collectAsState()
     val themePreference by vm.themePreference.collectAsState()
+    val language by vm.language.collectAsState()
     var url by remember { mutableStateOf(serverUrl) }
     var showBalance by remember { mutableStateOf(false) }
 
@@ -56,25 +57,25 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                DshIcon(DshIcons.ChevronLeft, tint = MaterialTheme.colorScheme.onSurface, size = 22.dp, contentDescription = "返回")
+                DshIcon(DshIcons.ChevronLeft, tint = MaterialTheme.colorScheme.onSurface, size = 22.dp, contentDescription = Strings.str("back"))
             }
-            Text("设置", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            Text(Strings.str("settings"), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
         }
         Spacer(Modifier.height(16.dp))
 
         // ---- connection ----
-        Text("服务器地址", style = MaterialTheme.typography.labelMedium)
+        Text(Strings.str("server_url"), style = MaterialTheme.typography.labelMedium)
         Spacer(Modifier.height(6.dp))
         OutlinedTextField(
             value = url,
             onValueChange = { url = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("https://host:port") },
+            label = { Text(Strings.str("server_url_hint")) },
             singleLine = true,
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "例如 https://desktop-e0lt97r.tailcf2bf3.ts.net:8443",
+            Strings.str("server_url_example"),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,
         )
@@ -86,11 +87,11 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("保存并连接")
+            Text(Strings.str("save_and_connect"))
         }
         Spacer(Modifier.height(8.dp))
         Text(
-            if (connected) "● 已连接" else "● 未连接",
+            if (connected) Strings.str("connected") else Strings.str("disconnected"),
             color = if (connected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,
         )
@@ -103,8 +104,17 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
         HorizontalDivider()
         Spacer(Modifier.height(20.dp))
 
+        // ---- language ----
+        Text(Strings.str("language"), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+        Spacer(Modifier.height(8.dp))
+        LanguageRow(current = language, onSelect = vm::setLanguage)
+
+        Spacer(Modifier.height(20.dp))
+        HorizontalDivider()
+        Spacer(Modifier.height(20.dp))
+
         // ---- appearance ----
-        Text("外观", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+        Text(Strings.str("appearance"), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(8.dp))
         AppearanceRow(current = themePreference, onSelect = vm::setThemePreference)
 
@@ -113,18 +123,18 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
         Spacer(Modifier.height(20.dp))
 
         // ---- notifications ----
-        Text("通知", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+        Text(Strings.str("notifications"), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(8.dp))
         SettingToggleRow(
-            title = "任务完成提醒",
-            subtitle = "回合完成时发送通知并播放提示音",
+            title = Strings.str("notify_done"),
+            subtitle = Strings.str("notify_done_sub"),
             checked = notifyDone,
             onCheckedChange = { vm.setNotifyDone(it) },
         )
         Spacer(Modifier.height(8.dp))
         SettingToggleRow(
-            title = "提问 / 批准提醒",
-            subtitle = "AI 提问或请求批准时发送通知",
+            title = Strings.str("notify_prompt"),
+            subtitle = Strings.str("notify_prompt_sub"),
             checked = notifyPrompt,
             onCheckedChange = { vm.setNotifyPrompt(it) },
         )
@@ -134,13 +144,13 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
         Spacer(Modifier.height(20.dp))
 
         // ---- DeepSeek platform ----
-        Text("DeepSeek 平台", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+        Text(Strings.str("deepseek_platform"), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(8.dp))
         Button(
             onClick = { showBalance = true },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("查询余额 / 用量")
+            Text(Strings.str("check_balance"))
         }
 
         Spacer(Modifier.height(20.dp))
@@ -148,7 +158,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
         Spacer(Modifier.height(20.dp))
 
         // ---- about ----
-        Text("关于", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+        Text(Strings.str("about"), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(8.dp))
         Text(
             "DSH Remote v${BuildConfig.VERSION_NAME}",
@@ -159,11 +169,41 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
 }
 
 @Composable
+private fun LanguageRow(current: String, onSelect: (String) -> Unit) {
+    val options = listOf(
+        Strings.ZH to "中文",
+        Strings.EN to "English",
+    )
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for ((value, label) in options) {
+            val selected = current == value
+            Column(
+                Modifier
+                    .weight(1f)
+                    .background(
+                        if (selected) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
+                        RoundedCornerShape(10.dp),
+                    )
+                    .clickable { onSelect(value) }
+                    .padding(vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    label,
+                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun AppearanceRow(current: String, onSelect: (String) -> Unit) {
     val options = listOf(
-        "light" to "浅色",
-        "dark" to "深色",
-        "system" to "跟随系统",
+        "light" to Strings.str("light"),
+        "dark" to Strings.str("dark"),
+        "system" to Strings.str("follow_system"),
     )
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         for ((value, label) in options) {

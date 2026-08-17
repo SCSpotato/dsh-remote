@@ -77,7 +77,7 @@ fun RightPanel(vm: AppViewModel, modifier: Modifier = Modifier) {
         }
         if (!hasGoal && todos.isEmpty() && jobs.isEmpty()) {
             Text(
-                "无目标 / 待办 / 后台任务",
+                Strings.str("no_goal_todo_jobs"),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
             )
@@ -97,7 +97,7 @@ private fun TodoCard(todos: List<dev.dsh.remote.data.TodoItem>) {
             DshIcon(DshIcons.Checklist, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 14.dp)
             Spacer(Modifier.width(4.dp))
             Text(
-                "待办 (${todos.size})",
+                Strings.str("todos_count", todos.size),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
@@ -143,7 +143,7 @@ private fun GoalCard(vm: AppViewModel, goal: GoalInfo) {
             DshIcon(DshIcons.Goal, tint = DshGreen, size = 14.dp)
             Spacer(Modifier.width(4.dp))
             Text(
-                "目标 · ${goal.phase}",
+                Strings.str("goal_phase", goal.phase),
                 color = DshGreen,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
@@ -159,11 +159,11 @@ private fun GoalCard(vm: AppViewModel, goal: GoalInfo) {
         )
         when (goal.phase) {
             "active" -> {
-                TextButton(onClick = { vm.goalPause() }) { Text("暂停", style = MaterialTheme.typography.labelSmall) }
-                TextButton(onClick = { vm.goalComplete() }) { Text("完成", style = MaterialTheme.typography.labelSmall) }
+                TextButton(onClick = { vm.goalPause() }) { Text(Strings.str("pause"), style = MaterialTheme.typography.labelSmall) }
+                TextButton(onClick = { vm.goalComplete() }) { Text(Strings.str("complete"), style = MaterialTheme.typography.labelSmall) }
             }
             "paused" -> {
-                TextButton(onClick = { vm.goalResume() }) { Text("恢复", style = MaterialTheme.typography.labelSmall) }
+                TextButton(onClick = { vm.goalResume() }) { Text(Strings.str("resume"), style = MaterialTheme.typography.labelSmall) }
             }
         }
     }
@@ -181,7 +181,7 @@ private fun JobsRow(jobs: List<JobView>) {
             DshIcon(DshIcons.Loading, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 14.dp)
             Spacer(Modifier.width(4.dp))
             Text(
-                "后台任务",
+                Strings.str("background_jobs"),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
@@ -209,7 +209,7 @@ private fun JobCard(job: JobView) {
             Spacer(Modifier.width(6.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    job.kind.ifBlank { "任务" },
+                    job.kind.ifBlank { Strings.str("task") },
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
@@ -263,11 +263,11 @@ private fun JobIndicator(status: String) {
 
 private fun jobFooter(job: JobView): String {
     val statusText = when (job.status) {
-        "completed" -> "已完成"
-        "killed" -> "已终止"
-        "failed" -> "失败"
-        "stopping" -> "停止中"
-        else -> "进行中"
+        "completed" -> Strings.str("status_completed")
+        "killed" -> Strings.str("status_killed")
+        "failed" -> Strings.str("status_failed")
+        "stopping" -> Strings.str("status_stopping")
+        else -> Strings.str("status_running")
     }
     val parts = mutableListOf(statusText)
     if (!job.detail.isNullOrBlank()) parts.add(job.detail)
@@ -280,5 +280,5 @@ private fun jobFooter(job: JobView): String {
 
 private fun formatDuration(ms: Long): String {
     val sec = ms / 1000
-    return if (sec < 60) "${sec}秒" else "${sec / 60}分${sec % 60}秒"
+    return if (sec < 60) Strings.str("secs_fmt", sec) else Strings.str("min_sec_fmt", sec / 60, sec % 60)
 }

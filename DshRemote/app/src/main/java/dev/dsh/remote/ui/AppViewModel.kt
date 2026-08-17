@@ -94,6 +94,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setThemePreference(v: String) { viewModelScope.launch { settings.setThemePreference(v) } }
 
+    /** UI language preference: "zh" | "en". */
+    val language: StateFlow<String> = settings.language
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "zh")
+
+    fun setLanguage(v: String) {
+        Strings.setLang(v)
+        viewModelScope.launch { settings.setLanguage(v) }
+    }
+
     /** DeepSeek platform API key (for balance/usage queries). */
     val deepseekApiKey: StateFlow<String> = settings.deepseekApiKey
         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
@@ -111,7 +120,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val key = settings.deepseekApiKey.first()
             if (key.isBlank()) {
-                _deepseekBalanceError.value = "请先填写 DeepSeek API Key"
+                _deepseekBalanceError.value = Strings.str("fill_api_key")
                 return@launch
             }
             _deepseekBalanceLoading.value = true
@@ -135,7 +144,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 _deepseekBalance.value = result
             } catch (e: Exception) {
-                _deepseekBalanceError.value = e.message ?: "查询失败"
+                _deepseekBalanceError.value = e.message ?: Strings.str("query_failed")
             } finally {
                 _deepseekBalanceLoading.value = false
             }
@@ -349,7 +358,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
-        // Auto-connect on startup using the saved server URL; only failures surface.
+        // Apply the saved language before any UI composes, then auto-connect.
+        viewModelScope.launch { Strings.setLang(settings.language.first()) }
         connect()
     }
 
@@ -770,7 +780,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
             when (r.result.kind) {
                 "error" -> {
-                    _error.value = r.result.text ?: "命令执行失败"
+                    _error.value = r.result.text ?: Strings.str("command_failed")
                     r.result.text?.let { toast(it) }
                 }
                 else -> {
@@ -781,7 +791,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             refreshSessions()
         } catch (e: Exception) {
             _error.value = e.message
-            toast("命令失败: ${e.message}")
+            toast(Strings.str("command_failed_fmt", e.message))
         }
     }
 
@@ -822,8 +832,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         return when {
             msg.contains("does not support image", ignoreCase = true) ||
                 msg.contains("MODEL_DOES_NOT_SUPPORT_IMAGES", ignoreCase = true) ->
-                "当前模型不支持图片附件"
-            else -> "附件发送失败: $msg"
+                Strings.str("image_unsupported")
+            else -> Strings.str("attachment_failed_fmt", msg)
         }
     }
 
@@ -905,13 +915,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if (created != null) {
                     refreshSessions()
                     openSession(created.sessionId)
-                    toast("已创建分支会话")
+                    toast(Strings.str("forked_session"))
                 } else {
-                    toast("分支失败: 未连接")
+                    toast(Strings.str("fork_failed_not_conn"))
                 }
             } catch (e: Exception) {
                 _error.value = e.message
-                toast("分支失败: ${e.message}")
+                toast(Strings.str("fork_failed_fmt", e.message))
             }
         }
     }
@@ -920,32 +930,32 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun copyText(text: String) {
         val t = text.trim()
         if (t.isEmpty()) {
-            toast("没有可复制的内容")
+            toast(Strings.str("no_copy_content"))
             return
         }
         val cm = getApplication<Application>()
             .getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
         cm.setPrimaryClip(android.content.ClipData.newPlainText("message", t))
-        toast("已复制")
+        toast(Strings.str("copied"))
     }
 
     /** Copy the visible conversation text to the clipboard. */
     fun copyConversation() {
         val text = _chatItems.value.joinToString("\n\n") { item ->
             when (item) {
-                is ChatItem.User -> "你: ${item.text}"
+                is ChatItem.User -> Strings.str("you_prefix", item.text)
                 is ChatItem.Assistant -> item.text
                 else -> ""
             }
         }.trim()
         if (text.isEmpty()) {
-            toast("没有可复制的内容")
+            toast(Strings.str("no_copy_content"))
             return
         }
         val cm = getApplication<Application>()
             .getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
         cm.setPrimaryClip(android.content.ClipData.newPlainText("conversation", text))
-        toast("已复制到剪贴板")
+        toast(Strings.str("copied_clipboard"))
     }
 
     /** Archive (remove) the current conversation. */
@@ -985,10 +995,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     draftBySession.remove(sessionId)
                 }
                 refreshAll()
-                toast("已删除对话")
+                toast(Strings.str("deleted_session"))
             } catch (e: Exception) {
                 _error.value = e.message
-                toast("删除失败: ${e.message}")
+                toast(Strings.str("delete_failed_fmt", e.message))
             }
         }
     }
@@ -1244,10 +1254,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 withContext(Dispatchers.Default) { api?.uploadFile(dir, name, base64) }
                 listDir(dir)
-                toast("已上传 $name")
+                toast(Strings.str("uploaded_fmt", name))
                 onDone(null)
             } catch (e: Exception) {
-                toast("上传失败: ${e.message}")
+                toast(Strings.str("upload_failed_fmt", e.message))
                 onDone(e.message)
             }
         }
@@ -1259,10 +1269,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 withContext(Dispatchers.Default) { api?.deleteFile(path) }
                 listDir(_dirPath.value)
-                toast("已删除")
+                toast(Strings.str("deleted_file"))
                 onDone(null)
             } catch (e: Exception) {
-                toast("删除失败: ${e.message}")
+                toast(Strings.str("delete_failed_fmt", e.message))
                 onDone(e.message)
             }
         }
@@ -1274,10 +1284,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 withContext(Dispatchers.Default) { api?.renameFile(path, name) }
                 listDir(_dirPath.value)
-                toast("已重命名")
+                toast(Strings.str("renamed"))
                 onDone(null)
             } catch (e: Exception) {
-                toast("重命名失败: ${e.message}")
+                toast(Strings.str("rename_failed_fmt", e.message))
                 onDone(e.message)
             }
         }
@@ -1289,10 +1299,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 withContext(Dispatchers.Default) { api?.copyFile(path) }
                 listDir(_dirPath.value)
-                toast("已复制")
+                toast(Strings.str("copied_file"))
                 onDone(null)
             } catch (e: Exception) {
-                toast("复制失败: ${e.message}")
+                toast(Strings.str("copy_failed_fmt", e.message))
                 onDone(e.message)
             }
         }

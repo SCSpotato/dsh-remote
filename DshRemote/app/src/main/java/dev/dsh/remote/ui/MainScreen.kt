@@ -145,18 +145,18 @@ fun MainScreen(vm: AppViewModel, onOpenSettings: () -> Unit) {
                     },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            DshIcon(DshIcons.PanelLeft, tint = MaterialTheme.colorScheme.onSurface, size = 22.dp, contentDescription = "菜单")
+                            DshIcon(DshIcons.PanelLeft, tint = MaterialTheme.colorScheme.onSurface, size = 22.dp, contentDescription = Strings.str("menu"))
                         }
                     },
                     actions = {
                         IconButton(onClick = { vm.goHome() }) {
-                            DshIcon(DshIcons.Fish, tint = MaterialTheme.colorScheme.onSurface, size = 20.dp, contentDescription = "回到主界面")
+                            DshIcon(DshIcons.Fish, tint = MaterialTheme.colorScheme.onSurface, size = 20.dp, contentDescription = Strings.str("back_home"))
                         }
                         IconButton(onClick = { showPanel = !showPanel }) {
-                            DshIcon(DshIcons.Data, tint = MaterialTheme.colorScheme.onSurface, size = 20.dp, contentDescription = "侧边栏")
+                            DshIcon(DshIcons.Data, tint = MaterialTheme.colorScheme.onSurface, size = 20.dp, contentDescription = Strings.str("sidebar"))
                         }
                         IconButton(onClick = onOpenSettings) {
-                            DshIcon(DshIcons.Settings, tint = MaterialTheme.colorScheme.onSurface, size = 20.dp, contentDescription = "设置")
+                            DshIcon(DshIcons.Settings, tint = MaterialTheme.colorScheme.onSurface, size = 20.dp, contentDescription = Strings.str("settings"))
                         }
                     },
                 )
@@ -177,7 +177,7 @@ fun MainScreen(vm: AppViewModel, onOpenSettings: () -> Unit) {
                     showSubagents -> SubagentScreen(vm, onBack = { showSubagents = false })
                     else -> {
                         when {
-                            currentId == null && connecting -> LoadingState("连接中…")
+                            currentId == null && connecting -> LoadingState(Strings.str("connecting"))
                             currentId == null -> HomeScreen(vm, onSelect = { vm.openSession(it) })
                             else -> SessionView(vm, showPanel, onClosePanel = { showPanel = false })
                         }
@@ -190,13 +190,13 @@ fun MainScreen(vm: AppViewModel, onOpenSettings: () -> Unit) {
     if (!connected && error != null) {
         AlertDialog(
             onDismissRequest = {},
-            title = { Text("连接失败") },
-            text = { Text(error ?: "无法连接到服务器") },
+            title = { Text(Strings.str("connection_failed")) },
+            text = { Text(error ?: Strings.str("cannot_connect_server")) },
             confirmButton = {
-                TextButton(onClick = { vm.connect() }) { Text("重试") }
+                TextButton(onClick = { vm.connect() }) { Text(Strings.str("retry")) }
             },
             dismissButton = {
-                TextButton(onClick = onOpenSettings) { Text("设置") }
+                TextButton(onClick = onOpenSettings) { Text(Strings.str("settings")) }
             },
         )
     }
@@ -207,8 +207,8 @@ private fun SessionView(vm: AppViewModel, showPanel: Boolean, onClosePanel: () -
     var tab by remember { mutableIntStateOf(0) }
     Column(Modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = tab) {
-            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("对话") })
-            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("轨迹") })
+            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text(Strings.str("conversation")) })
+            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text(Strings.str("trajectory")) })
         }
         when (tab) {
             0 -> Box(Modifier.fillMaxSize()) {
@@ -252,32 +252,32 @@ private fun HomeScreen(vm: AppViewModel, onSelect: (String) -> Unit) {
         item(key = "balance") { BalanceSummaryCard(vm) }
 
         if (pendingQuestions.isNotEmpty() || pendingApprovals.isNotEmpty()) {
-            item(key = "h-decision") { SectionHeader("待决策") }
+            item(key = "h-decision") { SectionHeader(Strings.str("decisions")) }
             items(pendingQuestions, key = { "q-${it.rpcId}" }) { q ->
                 val isPlan = q.questions.firstOrNull()?.intent?.kind == "plan-review"
                 NotificationCard(
                     if (isPlan) DshIcons.Goal else DshIcons.Question,
-                    if (isPlan) "计划待审" else "AI 向你提问",
-                    "点击查看并作答",
+                    if (isPlan) Strings.str("plan_review") else Strings.str("ai_asks"),
+                    Strings.str("click_to_answer"),
                     unread = true,
                 ) { onSelect(q.sessionId) }
             }
             items(pendingApprovals, key = { "a-${it.rpcId}" }) { a ->
-                NotificationCard(DshIcons.Warning, "需要批准 · ${a.toolName}", "点击处理", unread = true) { onSelect(a.sessionId) }
+                NotificationCard(DshIcons.Warning, "${Strings.str("needs_approval")} · ${a.toolName}", Strings.str("click_to_handle"), unread = true) { onSelect(a.sessionId) }
             }
         }
 
         if (runningSessions.isNotEmpty()) {
-            item(key = "h-running") { SectionHeader("正在运行") }
+            item(key = "h-running") { SectionHeader(Strings.str("running")) }
             items(runningSessions, key = { "r-${it.sessionId}" }) { s ->
-                NotificationCard(DshIcons.Play, s.title, "运行中 · 点击查看") { onSelect(s.sessionId) }
+                NotificationCard(DshIcons.Play, s.title, Strings.str("running_dot_desc") + " · " + Strings.str("click_to_view")) { onSelect(s.sessionId) }
             }
         }
 
         if (finishedSessions.isNotEmpty()) {
-            item(key = "h-finished") { SectionHeader("刚完成") }
+            item(key = "h-finished") { SectionHeader(Strings.str("finished_recent")) }
             items(finishedSessions, key = { "f-${it.sessionId}" }) { s ->
-                NotificationCard(DshIcons.Check, s.title, "对话已完成 · 点击查看", unread = true) { onSelect(s.sessionId) }
+                NotificationCard(DshIcons.Check, s.title, Strings.str("click_to_view"), unread = true) { onSelect(s.sessionId) }
             }
         }
     }
@@ -309,9 +309,9 @@ private fun BalanceSummaryCard(vm: AppViewModel) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             DshIcon(DshIcons.Data, tint = MaterialTheme.colorScheme.primary, size = 18.dp)
             Spacer(Modifier.width(6.dp))
-            Text("DeepSeek 余额", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+            Text(Strings.str("balance_title"), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = { vm.queryDeepseekBalance() }) { Text("刷新", style = MaterialTheme.typography.labelSmall) }
+            TextButton(onClick = { vm.queryDeepseekBalance() }) { Text(Strings.str("refresh"), style = MaterialTheme.typography.labelSmall) }
         }
         Spacer(Modifier.height(6.dp))
         when {
@@ -323,18 +323,18 @@ private fun BalanceSummaryCard(vm: AppViewModel) {
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    "可用 ${if ((info.total_balance.toDoubleOrNull() ?: 0.0) > 0.0) "是" else "否"}",
+                    Strings.str("available", if ((info.total_balance.toDoubleOrNull() ?: 0.0) > 0.0) Strings.str("yes") else Strings.str("no")),
                     color = MaterialTheme.colorScheme.secondary,
                     style = MaterialTheme.typography.labelSmall,
                 )
             }
             apiKey.isBlank() -> Text(
-                "未设置 API Key（在设置中填写）",
+                Strings.str("api_key_not_set"),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
             )
             else -> Text(
-                "点击刷新查询余额",
+                Strings.str("tap_refresh"),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
             )
@@ -364,7 +364,7 @@ private fun NotificationCard(icon: Int, title: String, subtitle: String, unread:
                         .background(MaterialTheme.colorScheme.tertiary, CircleShape),
                 )
                 Spacer(Modifier.width(4.dp))
-                Text("未读", color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                Text(Strings.str("unread"), color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
             }
         }
         Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
@@ -446,7 +446,7 @@ private fun SidebarContent(
             Text("DSH Remote", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
             Row {
                 IconButton(onClick = { vm.newSession() }) {
-                    DshIcon(DshIcons.NewChat, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 20.dp, contentDescription = "新建会话")
+                    DshIcon(DshIcons.NewChat, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 20.dp, contentDescription = Strings.str("new_session"))
                 }
                 IconButton(onClick = {
                     selectionMode = !selectionMode
@@ -456,14 +456,14 @@ private fun SidebarContent(
                         DshIcons.Trash,
                         tint = if (selectionMode) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                         size = 20.dp,
-                        contentDescription = "批量删除",
+                        contentDescription = Strings.str("batch_delete"),
                     )
                 }
                 TextButton(onClick = onCreateWorkspace) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         DshIcon(DshIcons.ProjectAdd, tint = MaterialTheme.colorScheme.primary, size = 16.dp)
                         Spacer(Modifier.width(4.dp))
-                        Text("工作区", style = MaterialTheme.typography.labelSmall)
+                        Text(Strings.str("workspace"), style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
@@ -474,7 +474,7 @@ private fun SidebarContent(
             value = searchQuery,
             onValueChange = { searchQuery = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("搜索对话…") },
+            placeholder = { Text(Strings.str("search_conversations")) },
             singleLine = true,
         )
         Spacer(Modifier.height(8.dp))
@@ -488,7 +488,7 @@ private fun SidebarContent(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "已选 ${selectedForDelete.size} 项",
+                    Strings.str("selected_items", selectedForDelete.size),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.weight(1f),
@@ -496,11 +496,11 @@ private fun SidebarContent(
                 TextButton(
                     enabled = selectedForDelete.isNotEmpty(),
                     onClick = { confirmBatchDelete = true },
-                ) { Text("删除", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall) }
+                ) { Text(Strings.str("delete"), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall) }
                 TextButton(onClick = {
                     selectionMode = false
                     selectedForDelete = emptySet()
-                }) { Text("取消", style = MaterialTheme.typography.labelSmall) }
+                }) { Text(Strings.str("cancel"), style = MaterialTheme.typography.labelSmall) }
             }
             Spacer(Modifier.height(8.dp))
         }
@@ -515,7 +515,7 @@ private fun SidebarContent(
         ) {
             DshIcon(DshIcons.Folder, tint = MaterialTheme.colorScheme.tertiary, size = 18.dp)
             Spacer(Modifier.width(8.dp))
-            Text("工作区文件", fontWeight = FontWeight.Medium)
+            Text(Strings.str("workspace_files"), fontWeight = FontWeight.Medium)
         }
         Spacer(Modifier.height(6.dp))
         Row(
@@ -528,7 +528,7 @@ private fun SidebarContent(
         ) {
             DshIcon(DshIcons.Fish, tint = MaterialTheme.colorScheme.onSurface, size = 20.dp)
             Spacer(Modifier.width(8.dp))
-            Text("子代理", fontWeight = FontWeight.Medium)
+            Text(Strings.str("subagents"), fontWeight = FontWeight.Medium)
         }
         Spacer(Modifier.height(8.dp))
 
@@ -563,7 +563,7 @@ private fun SidebarContent(
                 }
                 if (searchResults.isEmpty() && searchQuery.isNotBlank()) {
                     item(key = "no-results") {
-                        Text("无搜索结果", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(12.dp))
+                        Text(Strings.str("no_results"), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(12.dp))
                     }
                 }
             }
@@ -595,7 +595,7 @@ private fun SidebarContent(
                     when (row) {
                         is SideRow.Header -> {
                             if (row.workspace != null) WorkspaceHeader(row.workspace, onLongClick = { workspaceTarget = row.workspace })
-                            else Text("其他", style = MaterialTheme.typography.labelMedium)
+                            else Text(Strings.str("other"), style = MaterialTheme.typography.labelMedium)
                         }
                         is SideRow.Parent -> {
                             SessionRow(
@@ -637,18 +637,18 @@ private fun SidebarContent(
         AlertDialog(
             onDismissRequest = { sessionMenuTarget = null },
             title = { Text(title, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
-            text = { Text("选择操作") },
+            text = { Text(Strings.str("choose_action")) },
             confirmButton = {
                 TextButton(onClick = {
                     renameTarget = id to title
                     sessionMenuTarget = null
-                }) { Text("重命名") }
+                }) { Text(Strings.str("rename")) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     vm.deleteSessionById(id)
                     sessionMenuTarget = null
-                }) { Text("删除", color = MaterialTheme.colorScheme.error) }
+                }) { Text(Strings.str("delete"), color = MaterialTheme.colorScheme.error) }
             },
         )
     }
@@ -668,18 +668,18 @@ private fun SidebarContent(
         AlertDialog(
             onDismissRequest = { workspaceTarget = null },
             title = { Text(ws.title) },
-            text = { Text("工作区操作") },
+            text = { Text(Strings.str("workspace_actions")) },
             confirmButton = {
                 TextButton(onClick = {
                     workspaceRename = ws.workspaceId to ws.title
                     workspaceTarget = null
-                }) { Text("重命名") }
+                }) { Text(Strings.str("rename")) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     vm.deleteWorkspace(ws.workspaceId)
                     workspaceTarget = null
-                }) { Text("删除", color = MaterialTheme.colorScheme.error) }
+                }) { Text(Strings.str("delete"), color = MaterialTheme.colorScheme.error) }
             },
         )
     }
@@ -698,18 +698,18 @@ private fun SidebarContent(
     if (confirmBatchDelete) {
         AlertDialog(
             onDismissRequest = { confirmBatchDelete = false },
-            title = { Text("批量删除") },
-            text = { Text("确定删除选中的 ${selectedForDelete.size} 个对话吗?此操作会将其归档(从列表移除)。") },
+            title = { Text(Strings.str("batch_delete")) },
+            text = { Text(Strings.str("confirm_batch_delete", selectedForDelete.size)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmBatchDelete = false
                     selectedForDelete.forEach { vm.deleteSessionById(it) }
                     selectedForDelete = emptySet()
                     selectionMode = false
-                }) { Text("删除", color = MaterialTheme.colorScheme.error) }
+                }) { Text(Strings.str("delete"), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmBatchDelete = false }) { Text("取消") }
+                TextButton(onClick = { confirmBatchDelete = false }) { Text(Strings.str("cancel")) }
             },
         )
     }
@@ -720,10 +720,10 @@ private fun RenameDialog(initial: String, onConfirm: (String) -> Unit, onDismiss
     var text by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("重命名会话") },
+        title = { Text(Strings.str("rename_session")) },
         text = { OutlinedTextField(value = text, onValueChange = { text = it }, singleLine = true) },
-        confirmButton = { TextButton(onClick = { onConfirm(text.trim()) }) { Text("确定") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+        confirmButton = { TextButton(onClick = { onConfirm(text.trim()) }) { Text(Strings.str("ok")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(Strings.str("cancel")) } },
     )
 }
 

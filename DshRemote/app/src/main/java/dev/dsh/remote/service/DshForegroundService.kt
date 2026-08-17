@@ -15,6 +15,7 @@ import dev.dsh.remote.R
 import dev.dsh.remote.data.SettingsStore
 import dev.dsh.remote.net.TrustAll
 import dev.dsh.remote.net.WsClient
+import dev.dsh.remote.ui.Strings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -39,7 +40,7 @@ class DshForegroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(FG_ID, buildForegroundNotification("DSH Remote", "已连接,后台监控中"))
+        startForeground(FG_ID, buildForegroundNotification("DSH Remote", Strings.str("notif_fg_sub")))
         // Cancel any previous WebSocket collection before opening a new one,
         // otherwise repeated onStartCommand calls leak sockets.
         muxJob?.cancel()
@@ -60,20 +61,20 @@ class DshForegroundService : Service() {
                             val key = "turn:$sid:$seq"
                             if (!notified.add(key)) return@collect
                             when (reason) {
-                                "completed" -> if (settingsStore.notifyDone.first()) notifyEvent("DSH 任务已完成", "一个对话回合已完成", sid, CHANNEL_DONE)
-                                "error" -> if (settingsStore.notifyDone.first()) notifyEvent("DSH 任务出错", "一个对话回合出错了", sid)
+                                "completed" -> if (settingsStore.notifyDone.first()) notifyEvent(Strings.str("notif_task_done"), Strings.str("notif_task_done_sub"), sid, CHANNEL_DONE)
+                                "error" -> if (settingsStore.notifyDone.first()) notifyEvent(Strings.str("notif_task_error"), Strings.str("notif_task_error_sub"), sid)
                             }
                         }
                     }
                     "question/requested" -> {
                         if (!notified.add("q:${frame.rpcId}")) return@collect
                         val sid = frame.payload["sessionId"]?.jsonPrimitive?.content ?: ""
-                        if (settingsStore.notifyPrompt.first()) notifyEvent("DSH: AI 向你提问", "点击回到应用作答", sid)
+                        if (settingsStore.notifyPrompt.first()) notifyEvent(Strings.str("notif_question"), Strings.str("notif_question_sub"), sid)
                     }
                     "approval/requested" -> {
                         if (!notified.add("a:${frame.rpcId}")) return@collect
                         val sid = frame.payload["sessionId"]?.jsonPrimitive?.content ?: ""
-                        if (settingsStore.notifyPrompt.first()) notifyEvent("DSH: 需要批准", "点击回到应用处理", sid)
+                        if (settingsStore.notifyPrompt.first()) notifyEvent(Strings.str("notif_approval"), Strings.str("notif_approval_sub"), sid)
                     }
                 }
             }
@@ -118,14 +119,14 @@ class DshForegroundService : Service() {
     private fun createChannels() {
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_FOREGROUND, "连接状态", NotificationManager.IMPORTANCE_LOW),
+            NotificationChannel(CHANNEL_FOREGROUND, Strings.str("channel_conn"), NotificationManager.IMPORTANCE_LOW),
         )
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_EVENTS, "任务提醒", NotificationManager.IMPORTANCE_HIGH),
+            NotificationChannel(CHANNEL_EVENTS, Strings.str("channel_events"), NotificationManager.IMPORTANCE_HIGH),
         )
         // Completion channel plays the bundled chime (res/raw/task_done.wav).
         // On Android 8+ the sound belongs to the channel, not the notification.
-        val done = NotificationChannel(CHANNEL_DONE, "任务完成", NotificationManager.IMPORTANCE_HIGH).apply {
+        val done = NotificationChannel(CHANNEL_DONE, Strings.str("channel_done"), NotificationManager.IMPORTANCE_HIGH).apply {
             setSound(
                 Uri.parse("android.resource://${packageName}/${R.raw.task_done}"),
                 AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build(),

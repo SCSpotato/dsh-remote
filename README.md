@@ -151,7 +151,7 @@ npx dsh plugin --profile web add "file:C:/path/to/dsh-remote/remote-control"
 npx dsh web
 ```
 
-手机端：从 Releases 页面下载最新 `DshRemote-1.3.0.apk` → 设置里填服务器地址 → 连接。
+手机端：从 Releases 页面下载最新 `DshRemote-1.3.1.apk` → 设置里填服务器地址 → 连接。
 
 > 想要外网访问 + HTTPS，再补 [第四步 Tailscale](#第四步tailscale-组网) 和 [第五步 Caddy](#第五步caddy-https-反向代理)。
 

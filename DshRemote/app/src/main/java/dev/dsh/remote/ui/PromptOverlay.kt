@@ -48,16 +48,16 @@ import dev.dsh.remote.ui.theme.DshAmber
 
 @Composable
 fun ApprovalCard(vm: AppViewModel, approval: PendingApproval) {
-    DecisionCard(title = "需要批准", accent = DshAmber, icon = DshIcons.Warning) {
-        Text("工具：${approval.toolName}", fontWeight = FontWeight.SemiBold)
+    DecisionCard(title = Strings.str("needs_approval"), accent = DshAmber, icon = DshIcons.Warning) {
+        Text("${Strings.str("tool_label")}：${approval.toolName}", fontWeight = FontWeight.SemiBold)
         approval.reason?.takeIf { it.isNotBlank() }?.let { r ->
             Spacer(Modifier.height(6.dp))
             Text(r, style = MaterialTheme.typography.bodySmall)
         }
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { vm.respondApproval(approval, allow = true) }) { Text("允许一次") }
-            OutlinedButton(onClick = { vm.respondApproval(approval, allow = false) }) { Text("拒绝") }
+            Button(onClick = { vm.respondApproval(approval, allow = true) }) { Text(Strings.str("approve_once")) }
+            OutlinedButton(onClick = { vm.respondApproval(approval, allow = false) }) { Text(Strings.str("reject")) }
         }
     }
 }
@@ -69,7 +69,7 @@ fun PlanReviewCard(vm: AppViewModel, pending: PendingQuestion, question: Questio
         ?: question.options.firstOrNull()
     val declineOpt = question.options.firstOrNull { it.label != approveLabel }
 
-    DecisionCard(title = "计划待审", accent = DshAmber, icon = DshIcons.Goal) {
+    DecisionCard(title = Strings.str("plan_review"), accent = DshAmber, icon = DshIcons.Goal) {
         question.detail?.let { plan ->
             // Cap the plan body so an extra-long plan scrolls inside the card
             // instead of pushing the composer off-screen.
@@ -86,10 +86,10 @@ fun PlanReviewCard(vm: AppViewModel, pending: PendingQuestion, question: Questio
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = {
                 vm.respondQuestion(pending, listOf(QuestionAnswer(question.id, selected = listOf(approveOpt?.label ?: ""))))
-            }) { Text("确认执行") }
+            }) { Text(Strings.str("approve_execute")) }
             OutlinedButton(onClick = {
                 vm.respondQuestion(pending, listOf(QuestionAnswer(question.id, selected = listOf(declineOpt?.label ?: ""))))
-            }) { Text("继续规划") }
+            }) { Text(Strings.str("keep_planning")) }
         }
     }
 }
@@ -103,7 +103,7 @@ fun QuestionCard(vm: AppViewModel, pending: PendingQuestion) {
     }
     val answers = state.value
 
-    DecisionCard(title = questions.firstOrNull()?.header ?: "问题", accent = MaterialTheme.colorScheme.primary, icon = DshIcons.Question) {
+    DecisionCard(title = questions.firstOrNull()?.header ?: Strings.str("question_title"), accent = MaterialTheme.colorScheme.primary, icon = DshIcons.Question) {
         questions.forEachIndexed { qi, q ->
             if (qi > 0) Spacer(Modifier.height(12.dp))
             q.header?.let { h ->
@@ -150,14 +150,14 @@ fun QuestionCard(vm: AppViewModel, pending: PendingQuestion) {
                     updateAnswer(state, qi) { it.copy(custom = v.ifBlank { null }, selected = if (v.isNotBlank() && !q.multiSelect) emptyList() else it.selected) }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("或输入自定义答案…") },
+                placeholder = { Text(Strings.str("custom_answer_hint")) },
                 maxLines = 2,
             )
         }
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { vm.respondQuestion(pending, answers) }) { Text("提交") }
-            OutlinedButton(onClick = { vm.respondQuestion(pending, answers) }) { Text("取消") }
+            Button(onClick = { vm.respondQuestion(pending, answers) }) { Text(Strings.str("submit")) }
+            OutlinedButton(onClick = { vm.respondQuestion(pending, answers) }) { Text(Strings.str("cancel")) }
         }
     }
 }

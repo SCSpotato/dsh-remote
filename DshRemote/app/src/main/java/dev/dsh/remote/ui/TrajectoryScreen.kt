@@ -171,26 +171,26 @@ fun TrajectoryScreen(vm: AppViewModel) {
     toolDetail?.let { ev ->
         AlertDialog(
             onDismissRequest = { toolDetail = null },
-            title = { Text(ev.data["name"]?.jsonPrimitive?.content ?: "工具") },
+            title = { Text(ev.data["name"]?.jsonPrimitive?.content ?: Strings.str("tool_label")) },
             text = {
                 Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                     val args = ev.data["arguments"]?.jsonPrimitive?.content ?: ""
                     if (args.isNotBlank()) {
-                        Text("参数", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                        Text(Strings.str("params"), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
                         Text(args, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                     }
                     if (ev.type == "tool/result") {
                         Spacer(Modifier.height(8.dp))
-                        Text("结果", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                        Text(Strings.str("result"), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
                         Text(
-                            toolResultText(ev.data).ifBlank { if (ev.data["error"] != null) "执行出错" else "(无输出)" },
+                            toolResultText(ev.data).ifBlank { if (ev.data["error"] != null) Strings.str("exec_error") else Strings.str("no_output") },
                             fontFamily = FontFamily.Monospace,
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { toolDetail = null }) { Text("关闭") } },
+            confirmButton = { TextButton(onClick = { toolDetail = null }) { Text(Strings.str("close")) } },
         )
     }
 }
@@ -238,7 +238,7 @@ private fun layoutSpans(spans: List<TimelineSpan>, mode: String): List<RenderedS
 
 @Composable
 private fun TimelineModeRow(mode: String, onSelect: (String) -> Unit) {
-    val modes = listOf("sequence" to "顺序", "time" to "时间", "duration" to "时长", "actual" to "真实")
+    val modes = listOf("sequence" to Strings.str("mode_sequence"), "time" to Strings.str("mode_time"), "duration" to Strings.str("mode_duration"), "actual" to Strings.str("mode_actual"))
     Row(
         Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(horizontal = 12.dp, vertical = 2.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -273,9 +273,9 @@ private fun TimelineBar(spans: List<TimelineSpan>, mode: String) {
             Modifier.width(44.dp).fillMaxHeight().padding(end = 3.dp),
             contentAlignment = Alignment.TopEnd,
         ) {
-            TimelineLaneLabel("输入", 7.dp, DshLaneInput)
-            TimelineLaneLabel("模型", 21.dp, DshLaneModel)
-            TimelineLaneLabel("工具", 35.dp, DshLaneTool)
+            TimelineLaneLabel(Strings.str("lane_input"), 7.dp, DshLaneInput)
+            TimelineLaneLabel(Strings.str("lane_model"), 21.dp, DshLaneModel)
+            TimelineLaneLabel(Strings.str("lane_tool"), 35.dp, DshLaneTool)
         }
         BoxWithConstraints(Modifier.weight(1f).fillMaxHeight()) {
             val trackWidth = maxWidth
@@ -318,17 +318,17 @@ private fun StatsBar(stats: SessionStats?, tokenUsage: TokenUsageView?) {
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        StatCell("轮次", stats.turns.toString())
-        StatCell("步", stats.steps.toString())
-        StatCell("模型", fmtMs(stats.llmMs))
-        StatCell("工具", fmtMs(stats.toolMs))
-        StatCell("首token", fmtMs(if (stats.ttftSteps > 0) stats.ttftMs / stats.ttftSteps else 0))
+        StatCell(Strings.str("stat_turns"), stats.turns.toString())
+        StatCell(Strings.str("stat_steps"), stats.steps.toString())
+        StatCell(Strings.str("stat_model"), fmtMs(stats.llmMs))
+        StatCell(Strings.str("stat_tool"), fmtMs(stats.toolMs))
+        StatCell(Strings.str("stat_ttft"), fmtMs(if (stats.ttftSteps > 0) stats.ttftMs / stats.ttftSteps else 0))
         if (tokenUsage != null) {
-            StatCell("输入token", fmtTokens(tokenUsage.billedInput))
-            StatCell("缓存命中", cacheHitPercent(tokenUsage))
-            StatCell("输出token", fmtTokens(tokenUsage.outputTokens))
+            StatCell(Strings.str("stat_input_tokens"), fmtTokens(tokenUsage.billedInput))
+            StatCell(Strings.str("stat_cache_hits"), cacheHitPercent(tokenUsage))
+            StatCell(Strings.str("stat_output_tokens"), fmtTokens(tokenUsage.outputTokens))
         } else {
-            StatCell("输出token", stats.decodeTokens.toString())
+            StatCell(Strings.str("stat_output_tokens"), stats.decodeTokens.toString())
         }
     }
 }
@@ -369,7 +369,7 @@ private fun ContextMeter(pressure: ContextPressureView?, breakdown: ContextBreak
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "上下文已用 ${percent.toInt()}%",
+                Strings.str("ctx_used", percent.toInt()),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
@@ -405,9 +405,9 @@ private fun ContextMeter(pressure: ContextPressureView?, breakdown: ContextBreak
         }
         if (breakdown != null && breakdown.total > 0) {
             Spacer(Modifier.height(6.dp))
-            ContextLegendRow("系统提示词", breakdown.systemTokens, DshContextSystem)
-            ContextLegendRow("工具", breakdown.toolsTokens, DshContextTools)
-            ContextLegendRow("对话消息", breakdown.messageTokens, DshContextMessages)
+            ContextLegendRow(Strings.str("ctx_system"), breakdown.systemTokens, DshContextSystem)
+            ContextLegendRow(Strings.str("ctx_tools"), breakdown.toolsTokens, DshContextTools)
+            ContextLegendRow(Strings.str("ctx_messages"), breakdown.messageTokens, DshContextMessages)
         }
     }
 }
@@ -473,7 +473,7 @@ private fun TrajectoryRow(
                 )
                 Spacer(Modifier.width(2.dp))
                 Text(
-                    "回合 $turn",
+                    Strings.str("turn_fmt", turn),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold,
                 )
@@ -482,7 +482,7 @@ private fun TrajectoryRow(
         "turn/end" -> {
             val reason = ev.data["reason"]?.jsonObject?.get("kind")?.jsonPrimitive?.content ?: ""
             Text(
-                "—— 回合结束 ($reason) ——",
+                Strings.str("turn_end_fmt", reason),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(vertical = 2.dp),
@@ -490,7 +490,7 @@ private fun TrajectoryRow(
         }
         "user/message" -> {
             Text(
-                "你: ${textOf(ev.data["content"])}",
+                Strings.str("you_prefix", textOf(ev.data["content"])),
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(vertical = 2.dp),
             )
@@ -532,7 +532,7 @@ private fun TrajectoryRow(
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    "工具结果",
+                    Strings.str("tool_result"),
                     color = if (isError) MaterialTheme.colorScheme.error else DshGreen,
                     fontFamily = mono,
                     style = MaterialTheme.typography.bodySmall,
@@ -547,7 +547,7 @@ private fun TrajectoryRow(
                 DshIcon(DshIcons.Checklist, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 12.dp)
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    "待办更新",
+                    Strings.str("todo_update"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(vertical = 2.dp),
@@ -561,7 +561,7 @@ private fun TrajectoryRow(
 }
 
 private fun fmtMs(ms: Long): String = when {
-    ms >= 60_000 -> "${ms / 60_000}分${(ms % 60_000) / 1000}秒"
-    ms >= 1000 -> "${ms / 1000}.${(ms % 1000) / 100}秒"
+    ms >= 60_000 -> Strings.str("min_sec_fmt", ms / 60_000, (ms % 60_000) / 1000)
+    ms >= 1000 -> Strings.str("secs_dec_fmt", ms / 1000, (ms % 1000) / 100)
     else -> "${ms}ms"
 }

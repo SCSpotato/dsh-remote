@@ -58,9 +58,9 @@ fun BalanceScreen(vm: AppViewModel, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                DshIcon(DshIcons.ChevronLeft, tint = MaterialTheme.colorScheme.onSurface, size = 22.dp, contentDescription = "返回")
+                DshIcon(DshIcons.ChevronLeft, tint = MaterialTheme.colorScheme.onSurface, size = 22.dp, contentDescription = Strings.str("back"))
             }
-            Text("DeepSeek 余额", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            Text(Strings.str("balance_title"), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
         }
         Spacer(Modifier.height(16.dp))
 
@@ -82,7 +82,7 @@ fun BalanceScreen(vm: AppViewModel, onBack: () -> Unit) {
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (loading) "查询中…" else "保存并查询余额")
+            Text(if (loading) Strings.str("querying") else Strings.str("save_and_query"))
         }
         Spacer(Modifier.height(16.dp))
 
@@ -101,11 +101,11 @@ fun BalanceScreen(vm: AppViewModel, onBack: () -> Unit) {
                     Spacer(Modifier.height(16.dp))
                 }
                 if (bal.balance_infos.isEmpty()) {
-                    Text("暂无余额信息", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(Strings.str("no_balance_info"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             else -> {
-                Text("填写 API Key 后点击查询", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                Text(Strings.str("fill_key_then_query"), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
@@ -124,7 +124,7 @@ private fun BalanceCard(info: DeepseekBalanceInfo) {
             .padding(14.dp),
     ) {
         Text(
-            "总余额 ${info.currency}",
+            Strings.str("total_balance", info.currency),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.labelMedium,
         )
@@ -136,7 +136,7 @@ private fun BalanceCard(info: DeepseekBalanceInfo) {
         )
         Spacer(Modifier.height(10.dp))
         Text(
-            "可用 ${if (balanceAvailable(info)) "是" else "否"}",
+            Strings.str("available", if (balanceAvailable(info)) Strings.str("yes") else Strings.str("no")),
             color = if (balanceAvailable(info)) DshGreen else MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.labelSmall,
         )
@@ -166,8 +166,8 @@ private fun BalanceCard(info: DeepseekBalanceInfo) {
                 )
             }
             Spacer(Modifier.height(6.dp))
-            LegendRow("赠送余额", info.granted_balance, DshAmber)
-            LegendRow("充值余额", info.topped_up_balance, DshPrimary)
+            LegendRow(Strings.str("granted_balance"), info.granted_balance, DshAmber)
+            LegendRow(Strings.str("topped_up_balance"), info.topped_up_balance, DshPrimary)
         }
     }
 }

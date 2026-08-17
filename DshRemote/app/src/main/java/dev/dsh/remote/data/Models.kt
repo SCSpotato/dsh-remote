@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import dev.dsh.remote.ui.Strings
 
 @Serializable
 data class WorkspaceView(
@@ -373,7 +374,7 @@ fun toolViewInfo(view: JsonElement?): Pair<String, String>? {
                 ?: inner["title"]?.jsonPrimitive?.content?.removePrefix("Edit ") ?: ""
             "Edit · $path"
         }
-        "terminal" -> inner["title"]?.jsonPrimitive?.content?.lineSequence()?.firstOrNull() ?: "执行命令"
+        "terminal" -> inner["title"]?.jsonPrimitive?.content?.lineSequence()?.firstOrNull() ?: Strings.str("tool_cmd")
         "generic" -> inner["title"]?.jsonPrimitive?.content ?: ""
         "search" -> {
             val shape = inner["shape"]?.jsonPrimitive?.content
@@ -381,10 +382,10 @@ fun toolViewInfo(view: JsonElement?): Pair<String, String>? {
             val paths = inner["paths"] as? JsonArray
             val files = inner["files"] as? JsonArray
             when {
-                shape == "paths" && paths != null -> "${paths.size} 个路径"
-                files != null && total > 0 -> "$total 处匹配 · ${files.size} 个文件"
-                total > 0 -> "$total 处匹配"
-                else -> "搜索"
+                shape == "paths" && paths != null -> Strings.str("paths_count", paths.size)
+                files != null && total > 0 -> Strings.str("matches_files", total, files.size)
+                total > 0 -> Strings.str("matches_count", total)
+                else -> Strings.str("search")
             }
         }
         "web" -> {
@@ -392,9 +393,9 @@ fun toolViewInfo(view: JsonElement?): Pair<String, String>? {
             val sources = inner["sources"] as? JsonArray
             val url = inner["url"]?.jsonPrimitive?.content
             when (kind) {
-                "search" -> "${sources?.size ?: 0} 个来源"
-                "fetch" -> "抓取 ${url ?: ""}"
-                else -> "网页"
+                "search" -> Strings.str("sources_count", sources?.size ?: 0)
+                "fetch" -> Strings.str("fetched", url ?: "")
+                else -> Strings.str("web")
             }
         }
         else -> inner["title"]?.jsonPrimitive?.content ?: ""

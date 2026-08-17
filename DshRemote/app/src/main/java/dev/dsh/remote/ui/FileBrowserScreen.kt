@@ -101,11 +101,11 @@ fun FileBrowserScreen(
                     context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
                 }
                 if (bytes.isEmpty()) {
-                    actionError = "无法读取文件"
+                    actionError = Strings.str("cannot_read_file")
                     return@launch
                 }
                 if (bytes.size > 30_000_000) {
-                    actionError = "文件过大（上限约 30MB）"
+                    actionError = Strings.str("file_too_large")
                     return@launch
                 }
                 val b64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
@@ -113,7 +113,7 @@ fun FileBrowserScreen(
                     if (err != null) actionError = err
                 }
             } catch (e: Exception) {
-                actionError = e.message ?: "上传失败"
+                actionError = e.message ?: Strings.str("upload_failed")
             } finally {
                 uploading = false
             }
@@ -126,11 +126,11 @@ fun FileBrowserScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onBack) {
-                DshIcon(DshIcons.ChevronLeft, tint = MaterialTheme.colorScheme.onSurface, size = 22.dp, contentDescription = "返回")
+                DshIcon(DshIcons.ChevronLeft, tint = MaterialTheme.colorScheme.onSurface, size = 22.dp, contentDescription = Strings.str("back"))
             }
             if (parent != null) {
                 IconButton(onClick = { vm.navigateUp() }) {
-                    DshIcon(DshIcons.ChevronUp, tint = MaterialTheme.colorScheme.onSurface, size = 20.dp, contentDescription = "上级目录")
+                    DshIcon(DshIcons.ChevronUp, tint = MaterialTheme.colorScheme.onSurface, size = 20.dp, contentDescription = Strings.str("parent_dir"))
                 }
             }
             Text(
@@ -141,12 +141,12 @@ fun FileBrowserScreen(
                 modifier = Modifier.weight(1f),
             )
             if (pickMode) {
-                TextButton(onClick = { path?.let(onPickDirectory) }) { Text("选择此目录") }
+                TextButton(onClick = { path?.let(onPickDirectory) }) { Text(Strings.str("choose_this_dir")) }
             } else {
                 TextButton(
                     enabled = !uploading,
                     onClick = { uploadLauncher.launch("*/*") },
-                ) { Text(if (uploading) "上传中…" else "上传") }
+                ) { Text(if (uploading) Strings.str("uploading") else Strings.str("upload")) }
             }
             if (downloading || uploading) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -160,7 +160,7 @@ fun FileBrowserScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.height(12.dp))
-                        Text("加载中…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(Strings.str("loading"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -169,7 +169,7 @@ fun FileBrowserScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(error ?: "", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                         Spacer(Modifier.height(8.dp))
-                        TextButton(onClick = { vm.listDir(path) }) { Text("重试") }
+                        TextButton(onClick = { vm.listDir(path) }) { Text(Strings.str("retry")) }
                     }
                 }
             }
@@ -194,7 +194,7 @@ fun FileBrowserScreen(
                                             vm.downloadFileTo(e.path, target)
                                             target
                                         } catch (ex: Exception) {
-                                            actionError = ex.message ?: "下载失败"
+                                            actionError = ex.message ?: Strings.str("download_failed")
                                             null
                                         } finally {
                                             downloading = false
@@ -222,7 +222,7 @@ fun FileBrowserScreen(
                     if (entries.isEmpty()) {
                         item(key = "empty") {
                             Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                                Text("空目录", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(Strings.str("empty_dir"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -242,22 +242,22 @@ fun FileBrowserScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
-            confirmButton = { TextButton(onClick = { imageBitmap = null }) { Text("关闭") } },
+            confirmButton = { TextButton(onClick = { imageBitmap = null }) { Text(Strings.str("close")) } },
         )
     }
 
     downloaded?.let { (name, file) ->
         AlertDialog(
             onDismissRequest = { downloaded = null },
-            title = { Text("已下载") },
-            text = { Text("已保存到本地:\n${file.absolutePath}", style = MaterialTheme.typography.bodySmall) },
+            title = { Text(Strings.str("downloaded")) },
+            text = { Text(Strings.str("saved_to", file.absolutePath), style = MaterialTheme.typography.bodySmall) },
             confirmButton = {
                 TextButton(onClick = {
                     openDownloadedFile(context, file, name) { actionError = it }
                     downloaded = null
-                }) { Text("打开") }
+                }) { Text(Strings.str("open")) }
             },
-            dismissButton = { TextButton(onClick = { downloaded = null }) { Text("关闭") } },
+            dismissButton = { TextButton(onClick = { downloaded = null }) { Text(Strings.str("close")) } },
         )
     }
 
@@ -275,7 +275,7 @@ fun FileBrowserScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             DshIcon(DshIcons.Edit, tint = MaterialTheme.colorScheme.onSurface, size = 16.dp)
                             Spacer(Modifier.width(6.dp))
-                            Text("重命名")
+                            Text(Strings.str("rename"))
                         }
                     }
                     TextButton(onClick = {
@@ -285,7 +285,7 @@ fun FileBrowserScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             DshIcon(DshIcons.Copy, tint = MaterialTheme.colorScheme.onSurface, size = 16.dp)
                             Spacer(Modifier.width(6.dp))
-                            Text("复制")
+                            Text(Strings.str("copy"))
                         }
                     }
                     TextButton(onClick = {
@@ -295,19 +295,19 @@ fun FileBrowserScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             DshIcon(DshIcons.Trash, tint = MaterialTheme.colorScheme.error, size = 16.dp)
                             Spacer(Modifier.width(6.dp))
-                            Text("删除", color = MaterialTheme.colorScheme.error)
+                            Text(Strings.str("delete"), color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { fileMenuTarget = null }) { Text("取消") } },
+            confirmButton = { TextButton(onClick = { fileMenuTarget = null }) { Text(Strings.str("cancel")) } },
         )
     }
 
     renameTarget?.let { target ->
         AlertDialog(
             onDismissRequest = { renameTarget = null },
-            title = { Text("重命名") },
+            title = { Text(Strings.str("rename")) },
             text = {
                 OutlinedTextField(
                     value = renameText,
@@ -323,33 +323,33 @@ fun FileBrowserScreen(
                     if (newName.isNotEmpty() && newName != target.name) {
                         vm.renameFile(target.path, newName) { err -> if (err != null) actionError = err }
                     }
-                }) { Text("确定") }
+                }) { Text(Strings.str("ok")) }
             },
-            dismissButton = { TextButton(onClick = { renameTarget = null }) { Text("取消") } },
+            dismissButton = { TextButton(onClick = { renameTarget = null }) { Text(Strings.str("cancel")) } },
         )
     }
 
     deleteTarget?.let { target ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text("删除") },
-            text = { Text("确定删除「${target.name}」吗?此操作不可撤销。") },
+            title = { Text(Strings.str("delete")) },
+            text = { Text(Strings.str("delete_confirm_fmt", target.name)) },
             confirmButton = {
                 TextButton(onClick = {
                     deleteTarget = null
                     vm.deleteFile(target.path) { err -> if (err != null) actionError = err }
-                }) { Text("删除", color = MaterialTheme.colorScheme.error) }
+                }) { Text(Strings.str("delete"), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("取消") } },
+            dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text(Strings.str("cancel")) } },
         )
     }
 
     actionError?.let { msg ->
         AlertDialog(
             onDismissRequest = { actionError = null },
-            title = { Text("操作失败") },
+            title = { Text(Strings.str("op_failed")) },
             text = { Text(msg) },
-            confirmButton = { TextButton(onClick = { actionError = null }) { Text("确定") } },
+            confirmButton = { TextButton(onClick = { actionError = null }) { Text(Strings.str("ok")) } },
         )
     }
 }
@@ -441,7 +441,7 @@ private fun openDownloadedFile(context: Context, file: File, name: String, onErr
         }
         context.startActivity(intent)
     } catch (e: Exception) {
-        onError(e.message ?: "无法打开文件")
+        onError(e.message ?: Strings.str("cannot_open_file"))
     }
 }
 

@@ -53,9 +53,9 @@ fun SubagentScreen(vm: AppViewModel, onBack: () -> Unit) {
             IconButton(onClick = {
                 if (selectedId != null) vm.subagentBack() else onBack()
             }) {
-                DshIcon(DshIcons.ChevronLeft, tint = MaterialTheme.colorScheme.onSurface, size = 22.dp, contentDescription = "返回")
+                DshIcon(DshIcons.ChevronLeft, tint = MaterialTheme.colorScheme.onSurface, size = 22.dp, contentDescription = Strings.str("back"))
             }
-            Text(if (selectedId == null) "子代理" else "子代理对话", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            Text(if (selectedId == null) Strings.str("subagents") else Strings.str("subagent_chat"), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
         }
 
         if (selectedId == null) {
@@ -66,7 +66,7 @@ fun SubagentScreen(vm: AppViewModel, onBack: () -> Unit) {
                 if (subagents.isEmpty()) {
                     item(key = "empty") {
                         Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                            Text("暂无子代理", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(Strings.str("no_subagents"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -96,7 +96,7 @@ private fun SubagentRow(e: SubagentEntry, onClick: () -> Unit, onInterrupt: () -
             Text(e.activity ?: e.mode ?: e.kind, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
         }
         if (e.activity == "running" && e.mode == "continuable") {
-            TextButton(onClick = onInterrupt) { Text("中断", style = MaterialTheme.typography.labelSmall) }
+            TextButton(onClick = onInterrupt) { Text(Strings.str("interrupt"), style = MaterialTheme.typography.labelSmall) }
         }
     }
 }

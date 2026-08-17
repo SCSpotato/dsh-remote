@@ -150,9 +150,9 @@ private fun CodeBlock(code: String, color: Color) {
             IconButton(onClick = {
                 val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 cm.setPrimaryClip(ClipData.newPlainText("code", code))
-                Toast.makeText(context, "已复制代码", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, Strings.str("code_copied"), Toast.LENGTH_SHORT).show()
             }, modifier = Modifier.width(32.dp)) {
-                DshIcon(DshIcons.Copy, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 16.dp, contentDescription = "复制代码")
+                DshIcon(DshIcons.Copy, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 16.dp, contentDescription = Strings.str("copy_code"))
             }
         }
         Text(
@@ -311,7 +311,7 @@ private fun InlineText(text: String, color: Color, style: TextStyle, modifier: M
                     0 -> withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(m.groupValues[1]) }
                     1 -> withStyle(SpanStyle(background = codeBg)) { append(m.groupValues[1]) }
                     2 -> withLink(LinkAnnotation.Url(m.groupValues[2])) { withStyle(SpanStyle(color = C_LINK)) { append(m.groupValues[1]) } }
-                    3 -> withLink(LinkAnnotation.Url(m.groupValues[2])) { withStyle(SpanStyle(color = C_LINK)) { append(m.groupValues[1].ifBlank { "图片" }) } }
+                    3 -> withLink(LinkAnnotation.Url(m.groupValues[2])) { withStyle(SpanStyle(color = C_LINK)) { append(m.groupValues[1].ifBlank { Strings.str("image") }) } }
                 }
                 i = m.range.last + 1
             }

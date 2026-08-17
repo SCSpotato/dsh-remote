@@ -19,6 +19,7 @@ class SettingsStore(private val context: Context) {
     private val notifyPromptKey = booleanPreferencesKey("notify_prompt")
     private val deepseekApiKeyKey = stringPreferencesKey("deepseek_api_key")
     private val themePreferenceKey = stringPreferencesKey("theme_preference")
+    private val languageKey = stringPreferencesKey("language")
 
     val serverUrl: Flow<String> = context.dataStore.data.map { prefs ->
         prefs[serverUrlKey] ?: DEFAULT_URL
@@ -27,6 +28,11 @@ class SettingsStore(private val context: Context) {
     /** UI appearance: "system" | "light" | "dark". Defaults to follow system. */
     val themePreference: Flow<String> = context.dataStore.data.map { prefs ->
         prefs[themePreferenceKey] ?: "system"
+    }
+
+    /** UI language: "zh" | "en". Defaults to Chinese. */
+    val language: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[languageKey] ?: "zh"
     }
 
     /** DeepSeek platform API key for balance/usage queries. */
@@ -62,6 +68,10 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setThemePreference(v: String) {
         context.dataStore.edit { prefs -> prefs[themePreferenceKey] = v }
+    }
+
+    suspend fun setLanguage(v: String) {
+        context.dataStore.edit { prefs -> prefs[languageKey] = v }
     }
 
     /** Persist per-session composer drafts as a JSON map (WeChat-style drafts). */

@@ -162,7 +162,7 @@ fun ChatScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(12.dp))
-                Text("加载中…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(Strings.str("loading"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         return
@@ -177,7 +177,7 @@ fun ChatScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
             ) {
                 if (loadingOlder) {
                     item(key = "loading-older") {
-                        Text("加载更早的对话…", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                        Text(Strings.str("load_earlier"), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                     }
                 }
                 items(chatItems) { item ->
@@ -228,14 +228,14 @@ fun ChatScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
                         DshIcons.ChevronDown,
                         tint = MaterialTheme.colorScheme.primary,
                         size = 20.dp,
-                        contentDescription = "回到底部",
+                        contentDescription = Strings.str("jump_bottom"),
                     )
                 }
             }
         }
         Composer(
             vm = vm,
-            currentModel = models?.current?.model ?: "选择模型",
+            currentModel = models?.current?.model ?: Strings.str("choose_model"),
             running = running,
         )
     }
@@ -280,14 +280,14 @@ private fun ReasoningBox(summary: String, onExpanded: () -> Unit = {}, fullProvi
             DshIcon(DshIcons.Think, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 14.dp)
             Spacer(Modifier.width(4.dp))
             Text(
-                "思考过程",
+                Strings.str("reasoning"),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
             )
             Spacer(Modifier.weight(1f))
             Text(
-                if (expanded) "收起" else "展开",
+                if (expanded) Strings.str("collapse") else Strings.str("expand"),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelSmall,
             )
@@ -349,7 +349,7 @@ private fun ModeRow(vm: AppViewModel) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "命令",
+                    Strings.str("commands"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -360,15 +360,15 @@ private fun ModeRow(vm: AppViewModel) {
                 )
             }
             DropdownMenu(expanded = cmdMenu, onDismissRequest = { cmdMenu = false }) {
-                CommandItem("/plan", "进入或退出计划模式" + if (plan?.active == true) "（当前：计划中）" else "") {
+                CommandItem("/plan", Strings.str("cmd_plan") + if (plan?.active == true) Strings.str("plan_active") else "") {
                     vm.insertCommand(if (plan?.active == true) "/plan off" else "/plan")
                     cmdMenu = false
                 }
-                CommandItem("/goal", "查看或设置长期任务目标") {
+                CommandItem("/goal", Strings.str("cmd_goal")) {
                     vm.insertCommand("/goal")
                     cmdMenu = false
                 }
-                CommandItem("/compact", "压缩较早的对话历史") {
+                CommandItem("/compact", Strings.str("cmd_compact")) {
                     vm.insertCommand("/compact")
                     cmdMenu = false
                 }
@@ -383,7 +383,7 @@ private fun ModeRow(vm: AppViewModel) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    permissions?.currentValue ?: "权限",
+                    permissions?.currentValue ?: Strings.str("permissions"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -492,7 +492,7 @@ private fun ChatRow(item: ChatItem, fullReasoningOf: (Long) -> String, onFork: (
                             DshIcon(DshIcons.Branch, tint = MaterialTheme.colorScheme.primary, size = 14.dp)
                             Spacer(Modifier.width(4.dp))
                             Text(
-                                "分支",
+                                Strings.str("fork"),
                                 color = MaterialTheme.colorScheme.primary,
                                 style = MaterialTheme.typography.labelSmall,
                             )
@@ -507,7 +507,7 @@ private fun ChatRow(item: ChatItem, fullReasoningOf: (Long) -> String, onFork: (
                             DshIcon(DshIcons.Copy, tint = MaterialTheme.colorScheme.primary, size = 14.dp)
                             Spacer(Modifier.width(4.dp))
                             Text(
-                                "复制",
+                                Strings.str("copy"),
                                 color = MaterialTheme.colorScheme.primary,
                                 style = MaterialTheme.typography.labelSmall,
                             )
@@ -564,7 +564,7 @@ private fun ChatRow(item: ChatItem, fullReasoningOf: (Long) -> String, onFork: (
 private fun DeliverablesRow(paths: List<String>) {
     Column(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp)) {
         Text(
-            "产物",
+            Strings.str("deliverables"),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
@@ -590,7 +590,7 @@ private fun DeliverablesRow(paths: List<String>) {
             }
             if (paths.size > 6) {
                 Text(
-                    "+ ${paths.size - 6} 文件",
+                    Strings.str("more_files", paths.size - 6),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall,
                 )
@@ -621,8 +621,8 @@ private fun ToolCard(item: ChatItem.Tool) {
     var expanded by remember { mutableStateOf(false) }
     val isError = item.isError
     val displayName = when (item.name) {
-        "tool/error" -> "工具执行出错"
-        "tool/result" -> "工具结果"
+        "tool/error" -> Strings.str("tool_exec_error")
+        "tool/result" -> Strings.str("tool_result")
         else -> item.name
     }
     val summary = item.summary ?: item.arguments.lineSequence().firstOrNull { it.isNotBlank() }?.take(80) ?: ""
@@ -672,13 +672,13 @@ private fun ToolCard(item: ChatItem.Tool) {
                 IconButton(onClick = {
                     val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                     cm.setPrimaryClip(android.content.ClipData.newPlainText("tool", item.arguments))
-                    android.widget.Toast.makeText(context, "已复制", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(context, Strings.str("copied"), android.widget.Toast.LENGTH_SHORT).show()
                 }, modifier = Modifier.size(28.dp)) {
-                    DshIcon(DshIcons.Copy, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 14.dp, contentDescription = "复制")
+                    DshIcon(DshIcons.Copy, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 14.dp, contentDescription = Strings.str("copy"))
                 }
             }
             Text(
-                if (expanded) "收起" else "展开",
+                if (expanded) Strings.str("collapse") else Strings.str("expand"),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelSmall,
             )
@@ -870,7 +870,7 @@ private fun Composer(vm: AppViewModel, currentModel: String, running: Boolean) {
                             .padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(currentPreset ?: "预设", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                        Text(currentPreset ?: Strings.str("preset"), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                         DshIcon(DshIcons.ChevronDown, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 14.dp)
                     }
                     DropdownMenu(expanded = presetMenu, onDismissRequest = { presetMenu = false }) {
@@ -892,7 +892,7 @@ private fun Composer(vm: AppViewModel, currentModel: String, running: Boolean) {
                             .padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(currentEffort ?: "推理", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                        Text(currentEffort ?: Strings.str("reasoning_effort"), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                         DshIcon(DshIcons.ChevronDown, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 14.dp)
                     }
                     DropdownMenu(expanded = effortMenu, onDismissRequest = { effortMenu = false }) {
@@ -912,7 +912,7 @@ private fun Composer(vm: AppViewModel, currentModel: String, running: Boolean) {
                     DshIcon(DshIcons.Queue, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 14.dp)
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        "消息队列 (${queue.size})",
+                        Strings.str("msg_queue", queue.size),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
@@ -954,7 +954,7 @@ private fun Composer(vm: AppViewModel, currentModel: String, running: Boolean) {
                 img.bitmap?.let { bmp ->
                     Image(
                         bitmap = bmp.asImageBitmap(),
-                        contentDescription = "附件",
+                        contentDescription = Strings.str("attachment"),
                         modifier = Modifier
                             .size(56.dp)
                             .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
@@ -962,14 +962,14 @@ private fun Composer(vm: AppViewModel, currentModel: String, running: Boolean) {
                     Spacer(Modifier.width(8.dp))
                 }
                 Text(
-                    img.name ?: "图片附件",
+                    img.name ?: Strings.str("image_attachment"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = { pendingImage = null }) { Text("移除", style = MaterialTheme.typography.labelSmall, color = DshRed) }
+                TextButton(onClick = { pendingImage = null }) { Text(Strings.str("remove"), style = MaterialTheme.typography.labelSmall, color = DshRed) }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -977,7 +977,7 @@ private fun Composer(vm: AppViewModel, currentModel: String, running: Boolean) {
                 value = draft,
                 onValueChange = { vm.setDraft(it) },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("输入消息…") },
+                placeholder = { Text(Strings.str("input_hint")) },
                 maxLines = 5,
                 visualTransformation = SlashCommandTransformation(DshAmber),
             )
@@ -990,7 +990,7 @@ private fun Composer(vm: AppViewModel, currentModel: String, running: Boolean) {
                         DshIcons.Stop,
                         tint = DshRed,
                         size = 20.dp,
-                        contentDescription = "停止",
+                        contentDescription = Strings.str("stop"),
                     )
                 }
             }
@@ -1016,7 +1016,7 @@ private fun Composer(vm: AppViewModel, currentModel: String, running: Boolean) {
                     DshIcons.Send,
                     tint = MaterialTheme.colorScheme.primary,
                     size = 20.dp,
-                    contentDescription = if (running) "加入队列" else "发送",
+                    contentDescription = if (running) Strings.str("enqueue") else Strings.str("send"),
                 )
             }
         }
@@ -1025,7 +1025,7 @@ private fun Composer(vm: AppViewModel, currentModel: String, running: Boolean) {
     editingId?.let { id ->
         AlertDialog(
             onDismissRequest = { editingId = null },
-            title = { Text("修改队列消息") },
+            title = { Text(Strings.str("edit_queue_msg")) },
             text = {
                 OutlinedTextField(
                     value = editText,
@@ -1035,10 +1035,10 @@ private fun Composer(vm: AppViewModel, currentModel: String, running: Boolean) {
                 )
             },
             confirmButton = {
-                TextButton(onClick = { vm.editQueued(id, editText); editingId = null }) { Text("确定") }
+                TextButton(onClick = { vm.editQueued(id, editText); editingId = null }) { Text(Strings.str("ok")) }
             },
             dismissButton = {
-                TextButton(onClick = { editingId = null }) { Text("取消") }
+                TextButton(onClick = { editingId = null }) { Text(Strings.str("cancel")) }
             },
         )
     }

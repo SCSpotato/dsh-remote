@@ -157,7 +157,7 @@ npx dsh plugin --profile web add "file:C:/path/to/dsh-remote/remote-control"
 npx dsh web
 ```
 
-On the phone: download the latest `DshRemote-1.3.0.apk` from the Releases page → set the server address in Settings → connect.
+On the phone: download the latest `DshRemote-1.3.1.apk` from the Releases page → set the server address in Settings → connect.
 
 > For remote access over HTTPS, also do [4. Tailscale](#4-tailscale-networking) and [5. Caddy](#5-caddy-https-reverse-proxy).
 
