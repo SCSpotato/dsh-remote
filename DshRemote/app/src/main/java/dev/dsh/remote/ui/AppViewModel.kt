@@ -157,6 +157,63 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Fetch the current DeepSeek platform balance total (¥), or null when unavailable. */
+    private suspend fun fetchBalanceTotal(): Double? {
+        val key = settings.deepseekApiKey.first()
+        if (key.isBlank()) return null
+        return try {
+            withContext(Dispatchers.Default) {
+                val client = TrustAll.client().newBuilder()
+                    .connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+                    .readTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+                    .build()
+                val req = okhttp3.Request.Builder()
+                    .url("https://api.deepseek.com/user/balance")
+                    .header("Authorization", "Bearer $key")
+                    .get()
+                    .build()
+                client.newCall(req).execute().use { resp ->
+                    if (!resp.isSuccessful) throw Exception("HTTP ${resp.code}")
+                    val body = resp.body?.string() ?: throw Exception("empty response")
+                    json.decodeFromString<DeepseekBalanceResponse>(body)
+                }
+            }.balance_infos.sumOf { it.total_balance.toDoubleOrNull() ?: 0.0 }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /** Show the real cost of a finished turn: remaining balance + balance difference. */
+    private fun queryTurnCost(tu: TurnUsage?) {
+        viewModelScope.launch {
+            val total = fetchBalanceTotal()
+            if (total != null) {
+                val prev = lastBalance
+                val text = if (prev != null) {
+                    val cost = (prev - total).coerceAtLeast(0.0)
+                    Strings.str("balance_and_cost", fmtYuan(total), fmtYuan(cost))
+                } else {
+                    Strings.str("balance_only", fmtYuan(total))
+                }
+                _chatItems.value = _chatItems.value + ChatItem.Cost(text)
+                lastBalance = total
+            } else if (tu != null && (tu.inputTokens + tu.outputTokens) > 0) {
+                // No API key / balance unavailable → fall back to a token estimate.
+                val model = _models.value?.current?.model
+                val cost = estimateCostCny(tu, model)
+                val costText = Strings.str(
+                    "turn_cost",
+                    String.format(java.util.Locale.US, "%.3f", cost),
+                    fmtTokens(tu.inputTokens),
+                    fmtTokens(tu.outputTokens),
+                )
+                _chatItems.value = _chatItems.value + ChatItem.Cost(costText)
+            }
+        }
+    }
+
+    private fun fmtYuan(v: Double): String = String.format(java.util.Locale.US, "%.2f", v)
+
     private val _connected = MutableStateFlow(false)
     val connected: StateFlow<Boolean> = _connected.asStateFlow()
 
@@ -354,6 +411,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private var _oldestSeq: Long? = null
     private var fullTimelineSessionId: String? = null
     private var turnUsage: TurnUsage? = null
+    private var lastBalance: Double? = null
     private var muxJob: kotlinx.coroutines.Job? = null
     private var hostJob: kotlinx.coroutines.Job? = null
 
@@ -405,9 +463,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 for ((name, v) in ms) {
                     val mv = v.jsonObject
                     Prices.byModel[name] = ModelPrice(
-                        inputMiss = mv["inputMiss"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 3.0,
-                        inputHit = mv["inputHit"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.025,
-                        output = mv["output"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 6.0,
+                        inputMiss = mv["inputMiss"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 1.5,
+                        inputHit = mv["inputHit"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.05,
+                        output = mv["output"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 4.5,
                     )
                 }
             }
@@ -639,20 +697,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         _chatItems.value = items.toMutableList().also { it[idx] = a.copy(isTurnEnd = true) }
                     }
                 }
-                // Show the estimated cost of this turn once it finishes.
+                // Show the real cost of this turn from the balance difference;
+                // fall back to a token estimate when balance isn't available.
                 val tu = turnUsage
-                if (tu != null && (tu.inputTokens + tu.outputTokens) > 0) {
-                    val model = _models.value?.current?.model
-                    val cost = estimateCostCny(tu, model)
-                    val costText = Strings.str(
-                        "turn_cost",
-                        String.format(java.util.Locale.US, "%.3f", cost),
-                        fmtTokens(tu.inputTokens),
-                        fmtTokens(tu.outputTokens),
-                    )
-                    _chatItems.value = _chatItems.value + ChatItem.Cost(costText)
-                }
                 turnUsage = null
+                queryTurnCost(tu)
             }
             "tool/call" -> {
                 val folded = foldChat(listOf(ev))

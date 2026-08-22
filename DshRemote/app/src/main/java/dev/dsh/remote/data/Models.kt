@@ -138,24 +138,24 @@ data class ModelPrice(
  * remote URL); falls back to the built-in defaults when the fetch fails.
  */
 object Prices {
-    var default = ModelPrice(3.0, 0.025, 6.0)
+    var default = ModelPrice(1.5, 0.05, 4.5)
     val byModel = mutableMapOf(
-        "deepseek-chat" to ModelPrice(3.0, 0.025, 6.0),
-        "deepseek-reasoner" to ModelPrice(3.0, 0.025, 6.0),
+        "deepseek-v4-flash" to ModelPrice(1.5, 0.05, 4.5),
+        "deepseek-v4-pro" to ModelPrice(4.5, 0.15, 13.5),
+        "deepseek-v4-flash-vision-exp" to ModelPrice(1.5, 0.05, 4.5),
     )
 
     fun priceFor(model: String?, peak: Boolean): ModelPrice {
-        val m = model?.lowercase() ?: ""
-        val base = byModel[m]
-            ?: if (m.contains("r1") || m.contains("reasoner")) byModel["deepseek-reasoner"]!! else default
+        val base = byModel[model?.lowercase() ?: ""] ?: default
         return if (peak) base.peak() else base
     }
 
     /** Reset to the built-in defaults (used when a remote refresh fails). */
     fun resetDefaults() {
-        default = ModelPrice(3.0, 0.025, 6.0)
-        byModel["deepseek-chat"] = ModelPrice(3.0, 0.025, 6.0)
-        byModel["deepseek-reasoner"] = ModelPrice(3.0, 0.025, 6.0)
+        default = ModelPrice(1.5, 0.05, 4.5)
+        byModel["deepseek-v4-flash"] = ModelPrice(1.5, 0.05, 4.5)
+        byModel["deepseek-v4-pro"] = ModelPrice(4.5, 0.15, 13.5)
+        byModel["deepseek-v4-flash-vision-exp"] = ModelPrice(1.5, 0.05, 4.5)
     }
 }
 
