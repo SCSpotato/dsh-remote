@@ -113,6 +113,40 @@ data class TokenUsageView(
     val billedInput: Long get() = uncachedInputTokens + cacheReadTokens + cacheWriteTokens
 }
 
+/** Per-turn token usage accumulated from `assistant/message` events. */
+data class TurnUsage(
+    val inputTokens: Long = 0,
+    val cacheReadTokens: Long = 0,
+    val outputTokens: Long = 0,
+) {
+    fun plus(o: TurnUsage): TurnUsage =
+        TurnUsage(inputTokens + o.inputTokens, cacheReadTokens + o.cacheReadTokens, outputTokens + o.outputTokens)
+}
+
+private const val USD_TO_CNY = 7.2
+
+/**
+ * Estimate the turn cost in CNY (¥) using DeepSeek pricing (per 1M tokens, USD):
+ * deepseek-chat (V3): miss 0.27, hit 0.07, out 1.10; deepseek-reasoner (R1): miss 0.55, hit 0.14, out 2.19.
+ */
+fun estimateCostCny(usage: TurnUsage, model: String?): Double {
+    val m = model?.lowercase() ?: ""
+    val r1 = m.contains("r1") || m.contains("reasoner")
+    val miss = if (r1) 0.55 else 0.27
+    val hit = if (r1) 0.14 else 0.07
+    val out = if (r1) 2.19 else 1.10
+    val freshInput = (usage.inputTokens - usage.cacheReadTokens).coerceAtLeast(0)
+    val usd = (freshInput * miss + usage.cacheReadTokens * hit + usage.outputTokens * out) / 1_000_000.0
+    return usd * USD_TO_CNY
+}
+
+/** Compact token count: 1234 -> "1.2k", 1234567 -> "1.2M". */
+fun fmtTokens(n: Long): String = when {
+    n >= 1_000_000 -> String.format(java.util.Locale.US, "%.1fM", n / 1_000_000.0)
+    n >= 1_000 -> String.format(java.util.Locale.US, "%.1fk", n / 1000.0)
+    else -> n.toString()
+}
+
 @Serializable
 data class ContextPressureView(
     val pressureTokens: Long = 0,
@@ -295,6 +329,7 @@ sealed class ChatItem {
         val diffNew: String? = null,
     ) : ChatItem()
     data class Meta(val text: String, val seq: Long = 0) : ChatItem()
+    data class Cost(val text: String, val seq: Long = 0) : ChatItem()
     data class Todo(val items: List<TodoItem>) : ChatItem()
     data class Deliverables(val paths: List<String>) : ChatItem()
 }

@@ -301,5 +301,6 @@ object Strings {
         "workspace_actions" to ("工作区操作" to "Workspace actions"),
         "confirm_batch_delete" to ("确定删除选中的 {0} 个对话吗?此操作会将其归档(从列表移除)。" to "Archive the {0} selected conversations? This removes them from the list."),
         "rename_session" to ("重命名会话" to "Rename session"),
+        "turn_cost" to ("本次约 ¥{0} · 输入 {1} · 输出 {2}" to "This turn ≈ ¥{0} · in {1} · out {2}"),
     )
 }

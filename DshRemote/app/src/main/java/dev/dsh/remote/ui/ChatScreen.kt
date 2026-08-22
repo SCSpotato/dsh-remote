@@ -553,6 +553,15 @@ private fun ChatRow(item: ChatItem, fullReasoningOf: (Long) -> String, onFork: (
                 modifier = Modifier.padding(vertical = 4.dp),
             )
         }
+        is ChatItem.Cost -> {
+            Text(
+                item.text,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+            )
+        }
         is ChatItem.Deliverables -> {
             DeliverablesRow(item.paths)
         }

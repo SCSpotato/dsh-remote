@@ -17,6 +17,9 @@ import dev.dsh.remote.data.QueueItem
 import dev.dsh.remote.data.SessionStats
 import dev.dsh.remote.data.TodoItem
 import dev.dsh.remote.data.TokenUsageView
+import dev.dsh.remote.data.TurnUsage
+import dev.dsh.remote.data.estimateCostCny
+import dev.dsh.remote.data.fmtTokens
 import dev.dsh.remote.data.ContextPressureView
 import dev.dsh.remote.data.ContextBreakdownView
 import dev.dsh.remote.data.SessionSummary
@@ -347,6 +350,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val jobsBySession = java.util.concurrent.ConcurrentHashMap<String, List<JobView>>()
     private var _oldestSeq: Long? = null
     private var fullTimelineSessionId: String? = null
+    private var turnUsage: TurnUsage? = null
     private var muxJob: kotlinx.coroutines.Job? = null
     private var hostJob: kotlinx.coroutines.Job? = null
 
@@ -556,10 +560,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if (text.isNotBlank() || reasoningSummary.isNotBlank()) {
                     _chatItems.value = _chatItems.value + ChatItem.Assistant(text, ev.seq, reasoningSummary)
                 }
+                // Accumulate per-turn token usage for the cost line.
+                ev.data["usage"]?.jsonObject?.let { u ->
+                    val usage = TurnUsage(
+                        inputTokens = u["inputTokens"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0,
+                        cacheReadTokens = u["cacheReadTokens"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0,
+                        outputTokens = u["outputTokens"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0,
+                    )
+                    turnUsage = turnUsage?.plus(usage) ?: usage
+                }
                 _streaming.value = ""
                 _streamingReasoning.value = ""
             }
             "turn/start" -> {
+                turnUsage = null
                 _streaming.value = ""
                 _streamingReasoning.value = ""
             }
@@ -576,6 +590,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         _chatItems.value = items.toMutableList().also { it[idx] = a.copy(isTurnEnd = true) }
                     }
                 }
+                // Show the estimated cost of this turn once it finishes.
+                val tu = turnUsage
+                if (tu != null && (tu.inputTokens + tu.outputTokens) > 0) {
+                    val model = _models.value?.current?.model
+                    val cost = estimateCostCny(tu, model)
+                    val costText = Strings.str(
+                        "turn_cost",
+                        String.format(java.util.Locale.US, "%.3f", cost),
+                        fmtTokens(tu.inputTokens),
+                        fmtTokens(tu.outputTokens),
+                    )
+                    _chatItems.value = _chatItems.value + ChatItem.Cost(costText)
+                }
+                turnUsage = null
             }
             "tool/call" -> {
                 val folded = foldChat(listOf(ev))
