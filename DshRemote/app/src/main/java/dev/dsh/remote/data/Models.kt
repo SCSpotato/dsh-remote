@@ -123,21 +123,46 @@ data class TurnUsage(
         TurnUsage(inputTokens + o.inputTokens, cacheReadTokens + o.cacheReadTokens, outputTokens + o.outputTokens)
 }
 
-private const val USD_TO_CNY = 7.2
+/** Per-1M-token prices (USD) for one model. */
+data class ModelPrice(
+    val inputMiss: Double,
+    val inputHit: Double,
+    val output: Double,
+)
 
 /**
- * Estimate the turn cost in CNY (¥) using DeepSeek pricing (per 1M tokens, USD):
- * deepseek-chat (V3): miss 0.27, hit 0.07, out 1.10; deepseek-reasoner (R1): miss 0.55, hit 0.14, out 2.19.
+ * In-memory price table. Refreshed on app start from `prices.json` (a remote
+ * URL); falls back to the built-in defaults when the fetch fails.
  */
+object Prices {
+    var usdToCny: Double = 7.2
+    var default = ModelPrice(0.27, 0.07, 1.10)
+    val byModel = mutableMapOf(
+        "deepseek-chat" to ModelPrice(0.27, 0.07, 1.10),
+        "deepseek-reasoner" to ModelPrice(0.55, 0.14, 2.19),
+    )
+
+    fun priceFor(model: String?): ModelPrice {
+        val m = model?.lowercase() ?: ""
+        return byModel[m]
+            ?: if (m.contains("r1") || m.contains("reasoner")) byModel["deepseek-reasoner"]!! else default
+    }
+
+    /** Reset to the built-in defaults (used when a remote refresh fails). */
+    fun resetDefaults() {
+        usdToCny = 7.2
+        default = ModelPrice(0.27, 0.07, 1.10)
+        byModel["deepseek-chat"] = ModelPrice(0.27, 0.07, 1.10)
+        byModel["deepseek-reasoner"] = ModelPrice(0.55, 0.14, 2.19)
+    }
+}
+
+/** Estimate the turn cost in CNY (¥) using the current [Prices] table. */
 fun estimateCostCny(usage: TurnUsage, model: String?): Double {
-    val m = model?.lowercase() ?: ""
-    val r1 = m.contains("r1") || m.contains("reasoner")
-    val miss = if (r1) 0.55 else 0.27
-    val hit = if (r1) 0.14 else 0.07
-    val out = if (r1) 2.19 else 1.10
+    val p = Prices.priceFor(model)
     val freshInput = (usage.inputTokens - usage.cacheReadTokens).coerceAtLeast(0)
-    val usd = (freshInput * miss + usage.cacheReadTokens * hit + usage.outputTokens * out) / 1_000_000.0
-    return usd * USD_TO_CNY
+    val usd = (freshInput * p.inputMiss + usage.cacheReadTokens * p.inputHit + usage.outputTokens * p.output) / 1_000_000.0
+    return usd * Prices.usdToCny
 }
 
 /** Compact token count: 1234 -> "1.2k", 1234567 -> "1.2M". */

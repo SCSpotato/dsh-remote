@@ -18,6 +18,8 @@ import dev.dsh.remote.data.SessionStats
 import dev.dsh.remote.data.TodoItem
 import dev.dsh.remote.data.TokenUsageView
 import dev.dsh.remote.data.TurnUsage
+import dev.dsh.remote.data.ModelPrice
+import dev.dsh.remote.data.Prices
 import dev.dsh.remote.data.estimateCostCny
 import dev.dsh.remote.data.fmtTokens
 import dev.dsh.remote.data.ContextPressureView
@@ -55,6 +57,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -359,12 +362,59 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
         /** Leading slash-command token, mirroring the host `parseCommand` grammar. */
         private val COMMAND_LINE_REGEX = Regex("^/([a-z][a-z0-9_-]*)(?=$|[\\s])")
+
+        /** Remote `prices.json` used to refresh the cost table on app start. */
+        private val PRICES_URL = "https://raw.githubusercontent.com/SCSpotato/dsh-remote/main/prices.json"
     }
 
     init {
         // Apply the saved language before any UI composes, then auto-connect.
         viewModelScope.launch { Strings.setLang(settings.language.first()) }
+        fetchPrices()
         connect()
+    }
+
+    /** Fetch the latest pricing table from `prices.json`; built-in defaults are kept on failure. */
+    private fun fetchPrices() {
+        viewModelScope.launch {
+            try {
+                val client = TrustAll.client()
+                val req = okhttp3.Request.Builder().url(PRICES_URL).build()
+                client.newCall(req).execute().use { resp ->
+                    if (resp.isSuccessful) {
+                        val text = resp.body?.string() ?: return@launch
+                        parsePrices(json.parseToJsonElement(text).jsonObject)
+                    }
+                }
+            } catch (_: Exception) {
+                Prices.resetDefaults()
+            }
+        }
+    }
+
+    private fun parsePrices(obj: JsonObject) {
+        try {
+            obj["usdToCny"]?.jsonPrimitive?.content?.toDoubleOrNull()?.let { Prices.usdToCny = it }
+            obj["default"]?.jsonObject?.let { d ->
+                Prices.default = ModelPrice(
+                    inputMiss = d["inputMiss"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: Prices.default.inputMiss,
+                    inputHit = d["inputHit"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: Prices.default.inputHit,
+                    output = d["output"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: Prices.default.output,
+                )
+            }
+            obj["models"]?.jsonObject?.let { ms ->
+                for ((name, v) in ms) {
+                    val mv = v.jsonObject
+                    Prices.byModel[name] = ModelPrice(
+                        inputMiss = mv["inputMiss"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.27,
+                        inputHit = mv["inputHit"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.07,
+                        output = mv["output"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 1.10,
+                    )
+                }
+            }
+        } catch (_: Exception) {
+            Prices.resetDefaults()
+        }
     }
 
     fun setServerUrl(url: String) {
