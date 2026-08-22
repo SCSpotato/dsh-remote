@@ -123,46 +123,53 @@ data class TurnUsage(
         TurnUsage(inputTokens + o.inputTokens, cacheReadTokens + o.cacheReadTokens, outputTokens + o.outputTokens)
 }
 
-/** Per-1M-token prices (USD) for one model. */
+/** Per-1M-token prices (CNY ¥) for one model, at the OFF-PEAK (base) rate. */
 data class ModelPrice(
     val inputMiss: Double,
     val inputHit: Double,
     val output: Double,
-)
+) {
+    /** Peak prices = base x 2 (DeepSeek 峰谷: 高峰时段翻倍). */
+    fun peak(): ModelPrice = ModelPrice(inputMiss * 2, inputHit * 2, output * 2)
+}
 
 /**
- * In-memory price table. Refreshed on app start from `prices.json` (a remote
- * URL); falls back to the built-in defaults when the fetch fails.
+ * In-memory price table (CNY). Refreshed on app start from `prices.json` (a
+ * remote URL); falls back to the built-in defaults when the fetch fails.
  */
 object Prices {
-    var usdToCny: Double = 7.2
-    var default = ModelPrice(0.27, 0.07, 1.10)
+    var default = ModelPrice(3.0, 0.025, 6.0)
     val byModel = mutableMapOf(
-        "deepseek-chat" to ModelPrice(0.27, 0.07, 1.10),
-        "deepseek-reasoner" to ModelPrice(0.55, 0.14, 2.19),
+        "deepseek-chat" to ModelPrice(3.0, 0.025, 6.0),
+        "deepseek-reasoner" to ModelPrice(3.0, 0.025, 6.0),
     )
 
-    fun priceFor(model: String?): ModelPrice {
+    fun priceFor(model: String?, peak: Boolean): ModelPrice {
         val m = model?.lowercase() ?: ""
-        return byModel[m]
+        val base = byModel[m]
             ?: if (m.contains("r1") || m.contains("reasoner")) byModel["deepseek-reasoner"]!! else default
+        return if (peak) base.peak() else base
     }
 
     /** Reset to the built-in defaults (used when a remote refresh fails). */
     fun resetDefaults() {
-        usdToCny = 7.2
-        default = ModelPrice(0.27, 0.07, 1.10)
-        byModel["deepseek-chat"] = ModelPrice(0.27, 0.07, 1.10)
-        byModel["deepseek-reasoner"] = ModelPrice(0.55, 0.14, 2.19)
+        default = ModelPrice(3.0, 0.025, 6.0)
+        byModel["deepseek-chat"] = ModelPrice(3.0, 0.025, 6.0)
+        byModel["deepseek-reasoner"] = ModelPrice(3.0, 0.025, 6.0)
     }
 }
 
-/** Estimate the turn cost in CNY (¥) using the current [Prices] table. */
-fun estimateCostCny(usage: TurnUsage, model: String?): Double {
-    val p = Prices.priceFor(model)
+/** Whether the current Beijing time is in DeepSeek's peak window (9-12, 14-18). */
+fun isBeijingPeak(nowUtc: java.time.Instant = java.time.Instant.now()): Boolean {
+    val hour = nowUtc.atZone(java.time.ZoneId.of("Asia/Shanghai")).hour
+    return (hour >= 9 && hour < 12) || (hour >= 14 && hour < 18)
+}
+
+/** Estimate the turn cost in CNY (¥), applying DeepSeek peak/off-peak pricing. */
+fun estimateCostCny(usage: TurnUsage, model: String?, nowUtc: java.time.Instant = java.time.Instant.now()): Double {
+    val p = Prices.priceFor(model, isBeijingPeak(nowUtc))
     val freshInput = (usage.inputTokens - usage.cacheReadTokens).coerceAtLeast(0)
-    val usd = (freshInput * p.inputMiss + usage.cacheReadTokens * p.inputHit + usage.outputTokens * p.output) / 1_000_000.0
-    return usd * Prices.usdToCny
+    return (freshInput * p.inputMiss + usage.cacheReadTokens * p.inputHit + usage.outputTokens * p.output) / 1_000_000.0
 }
 
 /** Compact token count: 1234 -> "1.2k", 1234567 -> "1.2M". */

@@ -1,20 +1,19 @@
 {
-  "usdToCny": 7.2,
   "default": {
-    "inputMiss": 0.27,
-    "inputHit": 0.07,
-    "output": 1.10
+    "inputMiss": 3.0,
+    "inputHit": 0.025,
+    "output": 6.0
   },
   "models": {
     "deepseek-chat": {
-      "inputMiss": 0.27,
-      "inputHit": 0.07,
-      "output": 1.10
+      "inputMiss": 3.0,
+      "inputHit": 0.025,
+      "output": 6.0
     },
     "deepseek-reasoner": {
-      "inputMiss": 0.55,
-      "inputHit": 0.14,
-      "output": 2.19
+      "inputMiss": 3.0,
+      "inputHit": 0.025,
+      "output": 6.0
     }
   }
 }

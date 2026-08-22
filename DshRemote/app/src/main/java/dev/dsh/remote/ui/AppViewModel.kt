@@ -394,7 +394,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun parsePrices(obj: JsonObject) {
         try {
-            obj["usdToCny"]?.jsonPrimitive?.content?.toDoubleOrNull()?.let { Prices.usdToCny = it }
             obj["default"]?.jsonObject?.let { d ->
                 Prices.default = ModelPrice(
                     inputMiss = d["inputMiss"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: Prices.default.inputMiss,
@@ -406,9 +405,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 for ((name, v) in ms) {
                     val mv = v.jsonObject
                     Prices.byModel[name] = ModelPrice(
-                        inputMiss = mv["inputMiss"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.27,
-                        inputHit = mv["inputHit"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.07,
-                        output = mv["output"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 1.10,
+                        inputMiss = mv["inputMiss"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 3.0,
+                        inputHit = mv["inputHit"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.025,
+                        output = mv["output"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 6.0,
                     )
                 }
             }
