@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -13,8 +13,8 @@ android {
         applicationId = "dev.dsh.remote"
         minSdk = 26
         targetSdk = 35
-        versionCode = 72
-        versionName = "1.3.6"
+        versionCode = 73
+        versionName = "1.4.0"
     }
 
     // Signing is read from `keystore.properties` (git-ignored) so the private

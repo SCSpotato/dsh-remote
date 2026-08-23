@@ -6,10 +6,12 @@ import java.net.URLEncoder
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
@@ -38,6 +40,28 @@ class DshApi(private val rpc: RpcClient) {
             if (maxMessages != null) put("maxMessages", maxMessages)
         }
         return json.decodeFromJsonElement(SessionHistoryValue.serializer(), rpc.invoke("session.history", payload))
+    }
+
+    /**
+     * Read one durable image attachment's bytes for a session (base64 in the
+     * RPC value). The host only serves attachments this session's log references,
+     * so the correct sessionId must be passed. Returns null when data is absent.
+     */
+    suspend fun sessionAttachment(sessionId: String, attachmentId: String): AttachmentImage? {
+        val payload = buildJsonObject {
+            put("sessionId", sessionId)
+            put("attachmentId", attachmentId)
+        }
+        val v = rpc.invoke("session.attachment", payload) as? JsonObject ?: return null
+        val data = v["data"]?.jsonPrimitive?.content ?: return null
+        val att = v["attachment"]?.jsonObject
+        return AttachmentImage(
+            attachmentId = attachmentId,
+            mediaType = att?.get("mediaType")?.jsonPrimitive?.content ?: "image/png",
+            width = att?.get("width")?.jsonPrimitive?.content?.toIntOrNull() ?: 0,
+            height = att?.get("height")?.jsonPrimitive?.content?.toIntOrNull() ?: 0,
+            base64 = data,
+        )
     }
 
     suspend fun sessionCreate(
@@ -348,6 +372,15 @@ data class QuestionAnswer(
     val id: String,
     val selected: List<String> = emptyList(),
     val custom: String? = null,
+)
+
+/** A durable image attachment fetched from the host (bytes as base64). */
+data class AttachmentImage(
+    val attachmentId: String,
+    val mediaType: String = "image/png",
+    val width: Int = 0,
+    val height: Int = 0,
+    val base64: String,
 )
 
 private fun goalPayload(sessionId: String, refId: String, revision: Int): JsonObject =

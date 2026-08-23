@@ -8,6 +8,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +22,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -72,6 +77,7 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import dev.dsh.remote.data.ChatItem
+import dev.dsh.remote.data.ImageRef
 import dev.dsh.remote.data.textOf
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -87,6 +93,7 @@ import dev.dsh.remote.ui.theme.DshUserText
 @Composable
 fun ChatScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
     val chatItems by vm.chatItems.collectAsState()
+    val imageCache by vm.imageCache.collectAsState()
     val running by vm.running.collectAsState()
     val models by vm.models.collectAsState()
     val streaming by vm.streaming.collectAsState()
@@ -102,6 +109,8 @@ fun ChatScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
     val pendingQuestions = allQuestions.filter { it.sessionId == currentSessionId }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    // Bitmap currently enlarged full-screen (null when nothing is open).
+    var fullImage by remember { mutableStateOf<Bitmap?>(null) }
 
     val totalItems = chatItems.size +
         (if (streaming.isNotEmpty() || streamingReasoning.isNotEmpty()) 1 else 0) +
@@ -186,6 +195,8 @@ fun ChatScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
                         vm::fullReasoning,
                         onFork = { seq -> vm.forkSession(seq) },
                         onCopy = { text -> vm.copyText(text) },
+                        imageCache = imageCache,
+                        onOpenImage = { bmp -> fullImage = bmp },
                     )
                 }
                 if (streamingReasoning.isNotEmpty() || streaming.isNotEmpty()) {
@@ -238,6 +249,26 @@ fun ChatScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
             currentModel = models?.current?.model ?: Strings.str("choose_model"),
             running = running,
         )
+    }
+
+    // Full-screen image viewer: click a thumbnail to enlarge, tap outside to close.
+    if (fullImage != null) {
+        Dialog(
+            onDismissRequest = { fullImage = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+        ) {
+            Box(
+                Modifier.fillMaxSize().background(Color(0xCC000000)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    bitmap = fullImage!!.asImageBitmap(),
+                    contentDescription = Strings.str("image_preview"),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxWidth().fillMaxHeight().clickable { fullImage = null },
+                )
+            }
+        }
     }
 }
 
@@ -449,8 +480,58 @@ private fun CommandItem(name: String, description: String, onClick: () -> Unit) 
     )
 }
 
+/** Render chat-message images as tappable thumbnails; the decoded bitmap comes from the cache. */
 @Composable
-private fun ChatRow(item: ChatItem, fullReasoningOf: (Long) -> String, onFork: (Long) -> Unit, onCopy: (String) -> Unit) {
+private fun ChatImages(
+    refs: List<ImageRef>,
+    imageCache: Map<String, Bitmap>,
+    onOpenImage: (Bitmap) -> Unit,
+) {
+    if (refs.isEmpty()) return
+    Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        for (ref in refs) {
+            val bmp = imageCache[ref.attachmentId]
+            if (bmp != null) {
+                Image(
+                    bitmap = bmp.asImageBitmap(),
+                    contentDescription = ref.name ?: "image",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 220.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onOpenImage(bmp) },
+                )
+            } else {
+                // Placeholder while the attachment is still loading (or failed).
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        Strings.str("image_loading"),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatRow(
+    item: ChatItem,
+    fullReasoningOf: (Long) -> String,
+    onFork: (Long) -> Unit,
+    onCopy: (String) -> Unit,
+    imageCache: Map<String, Bitmap>,
+    onOpenImage: (Bitmap) -> Unit,
+) {
     when (item) {
         is ChatItem.User -> {
             Row(
@@ -463,7 +544,12 @@ private fun ChatRow(item: ChatItem, fullReasoningOf: (Long) -> String, onFork: (
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                         .widthIn(max = 320.dp),
                 ) {
-                    MarkdownText(item.text, color = DshUserText)
+                    Column {
+                        if (item.text.isNotBlank()) {
+                            MarkdownText(item.text, color = DshUserText)
+                        }
+                        ChatImages(item.images, imageCache, onOpenImage)
+                    }
                 }
             }
         }
@@ -476,6 +562,7 @@ private fun ChatRow(item: ChatItem, fullReasoningOf: (Long) -> String, onFork: (
                 if (item.text.isNotBlank()) {
                     MarkdownText(item.text)
                 }
+                ChatImages(item.images, imageCache, onOpenImage)
                 // Fork / copy only after the LAST output of a turn.
                 if (item.isTurnEnd) {
                     Row(

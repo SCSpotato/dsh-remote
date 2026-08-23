@@ -1,6 +1,9 @@
 package dev.dsh.remote.ui
 
 import android.app.Application
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.dsh.remote.data.ChatItem
@@ -31,6 +34,8 @@ import dev.dsh.remote.data.foldChat
 import dev.dsh.remote.data.reasoningOf
 import dev.dsh.remote.data.reasoningSummaryOf
 import dev.dsh.remote.data.textOf
+import dev.dsh.remote.data.imagesOf
+import dev.dsh.remote.data.ImageRef
 import dev.dsh.remote.data.TimelineSpan
 import dev.dsh.remote.data.timelineSpansOf
 import dev.dsh.remote.data.DirEntry
@@ -270,6 +275,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _chatItems = MutableStateFlow<List<ChatItem>>(emptyList())
     val chatItems: StateFlow<List<ChatItem>> = _chatItems.asStateFlow()
+
+    /** Decoded chat-image thumbnails keyed by attachmentId. */
+    private val _imageCache = MutableStateFlow<Map<String, Bitmap>>(emptyMap())
+    val imageCache: StateFlow<Map<String, Bitmap>> = _imageCache.asStateFlow()
 
     private val _streaming = MutableStateFlow("")
     val streaming: StateFlow<String> = _streaming.asStateFlow()
@@ -664,9 +673,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val content = msg?.get("content")
                 val text = textOf(content)
                 val reasoningSummary = reasoningSummaryOf(content)
-                if (text.isNotBlank() || reasoningSummary.isNotBlank()) {
-                    _chatItems.value = _chatItems.value + ChatItem.Assistant(text, ev.seq, reasoningSummary)
+                val images = imagesOf(content)
+                if (text.isNotBlank() || reasoningSummary.isNotBlank() || images.isNotEmpty()) {
+                    _chatItems.value = _chatItems.value + ChatItem.Assistant(text, ev.seq, reasoningSummary, images = images)
                 }
+                _currentSessionId.value?.let { sid -> images.forEach { loadImage(sid, it) } }
                 // Accumulate per-turn token usage for the cost line.
                 ev.data["usage"]?.jsonObject?.let { u ->
                     val usage = TurnUsage(
@@ -735,6 +746,53 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Load one chat image (decode to a thumbnail) and cache it by attachmentId.
+     * Idempotent: a cached image is not re-fetched.
+     */
+    private fun loadImage(sessionId: String, ref: ImageRef) {
+        if (ref.attachmentId.isEmpty()) return
+        if (_imageCache.value.containsKey(ref.attachmentId)) return
+        viewModelScope.launch {
+            val bytes = withContext(Dispatchers.IO) {
+                api?.sessionAttachment(sessionId, ref.attachmentId)
+            } ?: return@launch
+            val bmp = decodeImage(bytes.base64) ?: return@launch
+            // Only cache if still relevant (session may have switched meanwhile).
+            if (_currentSessionId.value == sessionId || sessionId == _currentSessionId.value) {
+                _imageCache.value = _imageCache.value + (ref.attachmentId to bmp)
+            }
+        }
+    }
+
+    /** Kick off image loading for every image referenced by the given chat items. */
+    private fun loadImagesFor(items: List<ChatItem>, sessionId: String) {
+        for (item in items) {
+            val refs = when (item) {
+                is ChatItem.User -> item.images
+                is ChatItem.Assistant -> item.images
+                else -> emptyList()
+            }
+            refs.forEach { loadImage(sessionId, it) }
+        }
+    }
+
+    /** Lightweight base64 → thumbnail Bitmap decode (bounded, off the main thread). */
+    private fun decodeImage(base64: String, maxDim: Int = 800): Bitmap? {
+        return try {
+            val bytes = Base64.decode(base64, Base64.NO_WRAP)
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+            var sample = 1
+            val maxSide = maxOf(bounds.outWidth, bounds.outHeight)
+            while (maxSide / sample > maxDim) sample *= 2
+            val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun openSession(sessionId: String) {
         viewModelScope.launch {
             // Show the loading spinner immediately, before any wait.
@@ -756,6 +814,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             refreshRunningStatus()
             _chatItems.value = emptyList()
             _events.value = emptyList()
+            _imageCache.value = emptyMap()
             _queueItems.value = queueBySession[sessionId] ?: emptyList()
             _jobs.value = jobsBySession[sessionId] ?: emptyList()
             _streaming.value = ""
@@ -781,6 +840,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     _hasMore.value = history.hasMore
                     events.firstOrNull()?.let { _oldestSeq = it.seq }
                     events.lastOrNull()?.let { lastSeqBySession[sessionId] = it.seq }
+                    loadImagesFor(folded, sessionId)
                 }
                 refreshModels()
             } catch (e: Exception) {
@@ -851,6 +911,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         val folded = withContext(Dispatchers.Default) { foldChat(older, views) }
                         _events.value = compactEvents(older) + _events.value
                         _chatItems.value = folded + _chatItems.value
+                        loadImagesFor(folded, sessionId)
                         older.firstOrNull()?.let { _oldestSeq = it.seq }
                     }
                     _hasMore.value = history.hasMore
@@ -1100,6 +1161,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _currentSessionId.value = null
         _chatItems.value = emptyList()
         _events.value = emptyList()
+        _imageCache.value = emptyMap()
         _streaming.value = ""
         _streamingReasoning.value = ""
         _draft.value = ""
@@ -1255,8 +1317,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     val lastSeq = lastSeqBySession[sessionId] ?: 0L
                     val fresh = history.events.map { it.event }.filter { it.seq > lastSeq }
                     if (fresh.isNotEmpty()) {
+                        val folded = foldChat(fresh)
                         _events.value = (_events.value + compactEvents(fresh)).takeLast(MAX_EVENTS)
-                        _chatItems.value = _chatItems.value + foldChat(fresh)
+                        _chatItems.value = _chatItems.value + folded
+                        loadImagesFor(folded, sessionId)
                         lastSeqBySession[sessionId] = fresh.last().seq
                         _streaming.value = ""
                         _streamingReasoning.value = ""

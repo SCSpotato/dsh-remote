@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.intOrNull
 import dev.dsh.remote.ui.Strings
 
 @Serializable
@@ -346,8 +347,8 @@ data class QuestionOption(
 // ---- chat surface model ----------------------------------------------------
 
 sealed class ChatItem {
-    data class User(val text: String, val seq: Long) : ChatItem()
-    data class Assistant(val text: String, val seq: Long, val reasoning: String = "", val isTurnEnd: Boolean = false) : ChatItem()
+    data class User(val text: String, val seq: Long, val images: List<ImageRef> = emptyList()) : ChatItem()
+    data class Assistant(val text: String, val seq: Long, val reasoning: String = "", val isTurnEnd: Boolean = false, val images: List<ImageRef> = emptyList()) : ChatItem()
     data class Tool(
         val name: String,
         val arguments: String,
@@ -392,6 +393,35 @@ fun textOf(content: JsonElement?): String {
             obj["text"]?.jsonPrimitive?.content
         } else null
     }.joinToString("")
+}
+
+/** An image referenced by a chat message (attachment id + display metadata). */
+@Serializable
+data class ImageRef(
+    val attachmentId: String,
+    val mediaType: String = "image/png",
+    val width: Int = 0,
+    val height: Int = 0,
+    val name: String? = null,
+)
+
+/** Extract image references from a content block array. */
+fun imagesOf(content: JsonElement?): List<ImageRef> {
+    if (content !is JsonArray) return emptyList()
+    return content.mapNotNull { block ->
+        val obj = block as? JsonObject ?: return@mapNotNull null
+        if (obj["type"]?.jsonPrimitive?.content != "image") return@mapNotNull null
+        // Image blocks carry a nested `attachment` object with attachmentId/mediaType.
+        val att = obj["attachment"]?.jsonObject ?: return@mapNotNull null
+        val id = att["attachmentId"]?.jsonPrimitive?.content ?: return@mapNotNull null
+        ImageRef(
+            attachmentId = id,
+            mediaType = att["mediaType"]?.jsonPrimitive?.content ?: "image/png",
+            width = att["width"]?.jsonPrimitive?.intOrNull ?: 0,
+            height = att["height"]?.jsonPrimitive?.intOrNull ?: 0,
+            name = att["name"]?.jsonPrimitive?.content,
+        )
+    }
 }
 
 fun reasoningOf(content: JsonElement?): String {
@@ -510,11 +540,12 @@ fun foldChat(events: List<SessionEvent>, viewBySeq: Map<Long, JsonElement> = emp
             "turn/start" -> produced.clear()
             "user/message" -> {
                 val text = textOf(ev.data["content"])
-                if (text.isNotBlank()) {
+                val images = imagesOf(ev.data["content"])
+                if (text.isNotBlank() || images.isNotEmpty()) {
                     val source = ev.data["source"]?.jsonObject
                     val kind = source?.get("kind")?.jsonPrimitive?.content ?: "user"
                     if (kind == "user") {
-                        out.add(ChatItem.User(text, ev.seq))
+                        out.add(ChatItem.User(text, ev.seq, images))
                     } else {
                         // Host/plugin notices (e.g. "background job … finished") are not
                         // the user's words — show them as a subtle system line instead of
@@ -530,8 +561,9 @@ fun foldChat(events: List<SessionEvent>, viewBySeq: Map<Long, JsonElement> = emp
                 val content = msg?.get("content")
                 val text = textOf(content)
                 val reasoningSummary = reasoningSummaryOf(content)
-                if (text.isNotBlank() || reasoningSummary.isNotBlank()) {
-                    out.add(ChatItem.Assistant(text, ev.seq, reasoningSummary))
+                val images = imagesOf(content)
+                if (text.isNotBlank() || reasoningSummary.isNotBlank() || images.isNotEmpty()) {
+                    out.add(ChatItem.Assistant(text, ev.seq, reasoningSummary, images = images))
                 }
             }
             "tool/call" -> {

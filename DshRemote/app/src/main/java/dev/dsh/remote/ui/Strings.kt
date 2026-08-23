@@ -135,6 +135,8 @@ object Strings {
         "copied_file" to ("已复制" to "Copied"),
         "attachment_failed" to ("附件发送失败" to "Attachment failed"),
         "image_unsupported" to ("当前模型不支持图片附件" to "Current model does not support images"),
+        "image_loading" to ("图片加载中…" to "Loading image…"),
+        "image_preview" to ("图片" to "Image"),
         "command_failed" to ("命令执行失败" to "Command failed"),
         "command_error" to ("命令失败" to "Command failed"),
 
