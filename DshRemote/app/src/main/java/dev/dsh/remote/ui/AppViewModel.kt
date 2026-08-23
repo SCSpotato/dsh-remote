@@ -747,8 +747,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Load one chat image (decode to a thumbnail) and cache it by attachmentId.
-     * Idempotent: a cached image is not re-fetched.
+     * Load one chat image and cache the full-resolution bitmap by attachmentId.
+     * The cached bitmap is NOT a tiny thumbnail: tapping it opens the original
+     * (DSH normalizes stored images to a 2048px long edge), so decoding below
+     * that ceiling keeps the tap-to-zoom view sharp.
      */
     private fun loadImage(sessionId: String, ref: ImageRef) {
         if (ref.attachmentId.isEmpty()) return
@@ -757,7 +759,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val bytes = withContext(Dispatchers.IO) {
                 api?.sessionAttachment(sessionId, ref.attachmentId)
             } ?: return@launch
-            val bmp = decodeImage(bytes.base64) ?: return@launch
+            val bmp = decodeImage(bytes.base64, maxDim = 2048) ?: return@launch
             // Only cache if still relevant (session may have switched meanwhile).
             if (_currentSessionId.value == sessionId || sessionId == _currentSessionId.value) {
                 _imageCache.value = _imageCache.value + (ref.attachmentId to bmp)
@@ -777,8 +779,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** Lightweight base64 → thumbnail Bitmap decode (bounded, off the main thread). */
-    private fun decodeImage(base64: String, maxDim: Int = 800): Bitmap? {
+    /** base64 → Bitmap decode (bounded long edge, off the main thread). */
+    private fun decodeImage(base64: String, maxDim: Int = 2048): Bitmap? {
         return try {
             val bytes = Base64.decode(base64, Base64.NO_WRAP)
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }

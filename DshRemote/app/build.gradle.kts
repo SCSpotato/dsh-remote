@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -13,13 +13,13 @@ android {
         applicationId = "dev.dsh.remote"
         minSdk = 26
         targetSdk = 35
-        versionCode = 73
-        versionName = "1.4.0"
+        versionCode = 74
+        versionName = "1.4.1"
     }
 
     // Signing is read from `keystore.properties` (git-ignored) so the private
     // key and passwords never end up in the repository. Copy
-    // `keystore.properties.example` 鈫?`keystore.properties` and fill it in.
+    // `keystore.properties.example` 閳?`keystore.properties` and fill it in.
     val keystoreProperties = java.util.Properties()
     val keystorePropertiesFile = rootProject.file("keystore.properties")
     if (keystorePropertiesFile.exists()) {
@@ -74,6 +74,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.ui:ui-tooling-preview")
 }
+
 
 
 
