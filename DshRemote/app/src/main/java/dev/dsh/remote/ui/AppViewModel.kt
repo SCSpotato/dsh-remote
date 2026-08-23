@@ -51,6 +51,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -829,8 +830,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             lastSeqBySession[sessionId] = 0
             try {
                 // Network + JSON decode + fold off the main thread so the spinner spins.
-                val history = withContext(Dispatchers.Default) {
-                    api?.sessionHistory(sessionId, maxMessages = 15)
+                // Bounded so a hung RPC (e.g. a transient 403/network stall) can never
+                // leave the chat stuck on the loading spinner forever: after the cap we
+                // clear loading and let the live WS stream show what it already has.
+                val history = withTimeoutOrNull(20_000) {
+                    withContext(Dispatchers.Default) {
+                        api?.sessionHistory(sessionId, maxMessages = 15)
+                    }
                 }
                 // The user may have switched sessions while loading — only apply if still current.
                 if (history != null && _currentSessionId.value == sessionId) {
