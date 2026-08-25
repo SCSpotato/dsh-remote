@@ -742,6 +742,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val folded = foldChat(listOf(ev))
                 if (folded.isNotEmpty()) {
                     _chatItems.value = _chatItems.value + folded
+                    // A live user/message (image) reaches this branch; kick off
+                    // image loading here too, otherwise the thumbnail stays on
+                    // its "loading" placeholder until the session is reopened.
+                    _currentSessionId.value?.let { sid -> loadImagesFor(folded, sid) }
                 }
             }
         }
@@ -752,18 +756,33 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * The cached bitmap is NOT a tiny thumbnail: tapping it opens the original
      * (DSH normalizes stored images to a 2048px long edge), so decoding below
      * that ceiling keeps the tap-to-zoom view sharp.
+     *
+     * Retries with backoff: the durable attachment may not be published yet when
+     * a live user/message first arrives, so a transient miss is retried rather
+     * than leaving the thumbnail on its "loading" placeholder forever.
      */
-    private fun loadImage(sessionId: String, ref: ImageRef) {
+    private fun loadImage(sessionId: String, ref: ImageRef, attempt: Int = 0) {
         if (ref.attachmentId.isEmpty()) return
         if (_imageCache.value.containsKey(ref.attachmentId)) return
         viewModelScope.launch {
             val bytes = withContext(Dispatchers.IO) {
-                api?.sessionAttachment(sessionId, ref.attachmentId)
-            } ?: return@launch
-            val bmp = decodeImage(bytes.base64, maxDim = 2048) ?: return@launch
-            // Only cache if still relevant (session may have switched meanwhile).
-            if (_currentSessionId.value == sessionId || sessionId == _currentSessionId.value) {
-                _imageCache.value = _imageCache.value + (ref.attachmentId to bmp)
+                try {
+                    api?.sessionAttachment(sessionId, ref.attachmentId)
+                } catch (_: Exception) {
+                    null
+                }
+            }
+            val bmp = if (bytes != null) decodeImage(bytes.base64, maxDim = 2048) else null
+            if (bmp != null) {
+                // Only cache if still relevant (session may have switched meanwhile).
+                if (_currentSessionId.value == sessionId) {
+                    _imageCache.value = _imageCache.value + (ref.attachmentId to bmp)
+                }
+            } else if (attempt < 6) {
+                // Durable image not ready yet — back off and retry.
+                val delay = longArrayOf(1500L, 2000L, 3000L, 5000L, 8000L, 12000L)[attempt]
+                delay(delay)
+                loadImage(sessionId, ref, attempt + 1)
             }
         }
     }
