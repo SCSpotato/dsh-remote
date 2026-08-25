@@ -193,11 +193,12 @@ class DshApi(private val rpc: RpcClient) {
      * (the host logs nothing in that case), so callers can fall back to a plain prompt.
      */
     suspend fun commandExecute(sessionId: String, line: String): CommandExecuteValue? {
-        val payload = buildJsonObject {
+        val args = buildJsonObject {
             put("agentId", sessionId)
             put("line", line)
             putJsonArray("images") { /* no image attachments for slash commands */ }
         }
+        val payload = buildJsonObject { put("args", args) }
         val v = rpc.invoke("commands/execute", payload)
         if (v is JsonNull) return null
         return json.decodeFromJsonElement(CommandExecuteValue.serializer(), v)
@@ -205,7 +206,8 @@ class DshApi(private val rpc: RpcClient) {
 
     /** List the host's slash-command directory for one session (`commands.list`). */
     suspend fun commandList(sessionId: String): List<CommandDescriptor> {
-        val payload = buildJsonObject { put("agentId", sessionId) }
+        val args = buildJsonObject { put("agentId", sessionId) }
+        val payload = buildJsonObject { put("args", args) }
         val v = rpc.invoke("commands/list", payload)
         return json.decodeFromJsonElement(ListSerializer(CommandDescriptor.serializer()), v)
     }
