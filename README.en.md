@@ -79,14 +79,14 @@ Below is everything the app can do, organized by screen (v1.4.4).
 
 ### Chat / Trajectory
 
-> ![Chat view](docs/screenshots/chat.png)  ![Chat + composer](docs/screenshots/chat-input.png)
+> ![Chat view](docs/screenshots/chat.png)  ![Tool call / Todo / deliverables](docs/screenshots/chat-tools.png)
 
 - **Chat / Trajectory tabs**: switch between the conversation and the trajectory view at the top.
 - Streaming output for both the assistant text and its reasoning.
 - Markdown rendering: headings, bold, inline code (grey box), code blocks, links, multi-level lists, quotes, task lists.
 - Live todo list from the model.
 - Tool cards for terminal commands, file edits (diff), search, and web fetches.
-- Deliverables: at the end of each turn, the files created/modified are listed (e.g. `pelican_bike.html`).
+- Deliverables: at the end of each turn, the files created/modified are listed (e.g. `image_report.html`).
 - **Image thumbnails**: images in the conversation render as thumbnails; **tap to open the full-resolution original**.
 - Fork & copy on any message.
 
@@ -102,7 +102,7 @@ A three-lane (input / model / tools) timeline with per-turn details:
 
 ### Composer
 
-> ![Composer](docs/screenshots/chat-input.png)
+> ![Composer](docs/screenshots/chat-decisions.png)
 
 - **Command / permission selector**: switch permission presets (read-only / workspace-write / danger-full-access) and see the active command.
 - **Model selection**: switch provider / model (e.g. `deepseek-v4-flash-vision-exp`) and set reasoning effort (e.g. `high`).
@@ -110,6 +110,8 @@ A three-lane (input / model / tools) timeline with per-turn details:
 - **Message input**: input box + send button; lines starting with `/` go through the **host command channel** (`/plan`, `/goal`, `/permission`, etc.), not as plain text.
 
 ### Decision cards (inline)
+
+> ![Decision cards](docs/screenshots/chat-decisions.png)
 
 Plan review, tool approval, and AI questions render as **inline cards at the bottom of the conversation** — never as a modal covering the chat:
 

@@ -76,14 +76,14 @@
 
 ### 对话 / 轨迹
 
-> ![对话视图](docs/screenshots/chat.png) 　 ![对话 + 输入区](docs/screenshots/chat-input.png)
+> ![对话视图](docs/screenshots/chat.png) 　 ![工具调用 / Todo / 产物](docs/screenshots/chat-tools.png)
 
 - **对话 / 轨迹双标签**：顶部可切换「对话」和「轨迹」两个视图。
 - **流式输出**：助手正文与思考过程（reasoning）实时逐字显示。
 - **Markdown 渲染**：标题、粗体、行内代码（灰底）、代码块、链接、多级列表、引用、勾选清单。
 - **Todo 清单**：模型的任务列表实时展示进度。
 - **工具调用卡**：终端命令、文件编辑（diff）、搜索、网页抓取等工具，都折叠成可展开的卡片。
-- **产物列表**：每个回合结束，自动列出本回合新建/修改的文件路径（如 `pelican_bike.html`）。
+- **产物列表**：每个回合结束，自动列出本回合新建/修改的文件路径（如 `image_report.html`）。
 - **图片缩略图**：对话里的图片（你发或 AI 生成的）以**缩略图**形式显示，**点击即可全屏放大查看清晰原图**。
 - **分支（Fork）与复制**：对任意一条消息一键 fork 出子会话，或复制其文本。
 
@@ -99,7 +99,7 @@
 
 ### 输入区
 
-> ![输入区](docs/screenshots/chat-input.png)
+> ![输入区](docs/screenshots/chat-decisions.png)
 
 - **命令 / 权限选择器**：底部可直接切换**权限预设**（read-only / workspace-write / danger-full-access），并列出当前生效的命令。
 - **模型选择**：切换 provider / model（如 `deepseek-v4-flash-vision-exp`），并可设推理强度（如 `high`）。
@@ -107,6 +107,8 @@
 - **消息输入**：输入框 + 发送按钮；以 `/` 开头的行会走**宿生命令通道**（`/plan`、`/goal`、`/permission` 等），而不是当普通消息发。
 
 ### 决策交互（内联卡片）
+
+> ![决策卡片](docs/screenshots/chat-decisions.png)
 
 计划审批、工具批准、AI 提问这三类决策，都以**卡片形式内联在对话流底部**，不会弹窗盖住聊天内容：
 
