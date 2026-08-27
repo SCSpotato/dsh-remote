@@ -44,11 +44,11 @@ A native Android client that remote-controls [DeepSeek Harness (DSH)](https://gi
   DSH host  (dsh web, 127.0.0.1:3080)
         │  ┌─ @deepseek-ai/dsh-base
         │  ├─ @deepseek-ai/dsh-web-app
-        │  ├─ @liustack/modlens         (image / OCR engine)
         │  ├─ dsh-better-sidebar        (sidebar enhancement)
+        │  ├─ dsh-computer-control      (computer control, for the model)
         │  └─ dsh-remote-control        (this repo: /remote/* API for the phone)
         ▼
-  LLM (DeepSeek, etc.)
+  LLM (DeepSeek, etc., including native vision models)
 ```
 
 - The phone only renders and interacts. All sessions, tools, and files live on the DSH host on your computer.
@@ -58,29 +58,46 @@ A native Android client that remote-controls [DeepSeek Harness (DSH)](https://gi
 
 ## Features
 
-### Session management
+Below is everything the app can do, organized by screen (v1.4.4).
 
-- Session list with live running state (a pulsing blue dot marks running sessions).
+### Home / Dashboard (image 6)
+
+- **Connection status**: a dot at the top-left of the title bar shows the live connection to your computer (blue = connected, grey = disconnected).
+- **DeepSeek balance card**: shows your current DeepSeek account balance (CNY) and "available" state; tap **Refresh** to re-query.
+- **Running**: if a task is running on the computer, a "running · tap to view" entry appears here and deep-links to that session.
+
+### Session management (image 2)
+
+- Session list with live running state.
 - New / archive / rename / search sessions.
-- Subagent tree: see the children of each parent session and open them separately.
-- "Just finished" section pins sessions completed in the last 5 minutes, with an unread dot.
+- **Subagents**: open the subagent tree, see the children of each parent session and open them separately.
+- **Workspace**: open the file browser (see below).
 
-### Chat
+### Chat / Trajectory (images 3, 4)
 
+- **Chat / Trajectory tabs**: switch between the conversation and the trajectory view at the top.
 - Streaming output for both the assistant text and its reasoning.
 - Markdown rendering: headings, bold, inline code (grey box), code blocks, links, multi-level lists, quotes, task lists.
 - Live todo list from the model.
 - Tool cards for terminal commands, file edits (diff), search, and web fetches.
-- Deliverables: at the end of each turn, the files created/modified are listed.
+- Deliverables: at the end of each turn, the files created/modified are listed (e.g. `pelican_bike.html`).
+- **Image thumbnails**: images in the conversation render as thumbnails; **tap to open the full-resolution original**.
 - Fork & copy on any message.
 
-### Composer
+### Trajectory panel (image 3)
 
-- Model / provider selection with reasoning effort.
-- Permission preset (read-only / workspace-write / danger-full-access).
-- Plan mode (`/plan`).
-- Command menu (`/plan`, `/goal`, `/compact`, `/permission`) — sent through the real host command channel, not as plain text.
-- Image attachments (needs the modlens plugin).
+A three-lane (input / model / tools) timeline with per-turn details:
+
+- **Stats row**: turns, steps, model time, tool time, first-token latency, total input tokens, cache hit rate.
+- **Context usage**: percentage of context used (e.g. 53%), broken down into system prompt / tools / chat messages token usage.
+- **Timeline**: view each step (model / tool) by order / duration / real time.
+
+### Composer (image 4)
+
+- **Command / permission selector**: switch permission presets (read-only / workspace-write / danger-full-access) and see the active command.
+- **Model selection**: switch provider / model (e.g. `deepseek-v4-flash-vision-exp`) and set reasoning effort (e.g. `high`).
+- **Image send**: attach a photo from the gallery or take one with the camera.
+- **Message input**: input box + send button; lines starting with `/` go through the **host command channel** (`/plan`, `/goal`, `/permission`, etc.), not as plain text.
 
 ### Decision cards (inline)
 
@@ -90,27 +107,28 @@ Plan review, tool approval, and AI questions render as **inline cards at the bot
 - Tool approval: `Allow once` / `Reject`.
 - AI question: single / multi select + custom answer.
 
-### Trajectory panel
+### Workspace files (image 5)
 
-A three-lane (input / model / tools) timeline showing per-turn steps, duration, tool calls, and token stats (including cache hits).
+Browse the computer's workspace directory via the `dsh-remote-control` plugin:
 
-### Files
+- Directory browsing.
+- Upload a file from the phone to the current folder.
+- Download / delete / rename / copy files.
 
-Browse the computer's workspace directory, upload / download / delete / rename / copy files via the `dsh-remote-control` plugin.
+### Settings (image 1)
+
+- **Server address**: fill in the computer's `https://…:8443` URL, tap **Save & connect**; it reconnects automatically when changed.
+- **Language**: Chinese / English.
+- **Appearance**: light / dark / follow-system.
+- **Notifications**:
+  - **Task done**: sends a notification (with sound) when a turn finishes.
+  - **Ask / approve**: sends a notification when the AI asks a question or requests approval.
+- **DeepSeek platform**: check balance / usage.
+- **About**: shows the app version.
 
 ### Notifications & background
 
 A foreground service keeps the app alive in the background and posts system notifications for: task done, task error, AI question, and approval requests. Tapping a notification deep-links to the right session.
-
-### Theme & other
-
-- Dark / light / follow-system.
-- DeepSeek balance check (optional, with an API key).
-- Server address is editable in settings; it reconnects automatically.
-
-### Language
-
-- **中文 / English** switchable in Settings.
 
 ---
 
@@ -150,14 +168,14 @@ mkdir dsh-app && cd dsh-app
 npm install @deepseek-ai/dsh
 
 # 2) install plugins (into the web profile)
-npx dsh plugin --profile web add dsh-better-sidebar @liustack/modlens
+npx dsh plugin --profile web add dsh-better-sidebar dsh-computer-control
 npx dsh plugin --profile web add "file:C:/path/to/dsh-remote/remote-control"
 
 # 3) start
 npx dsh web
 ```
 
-On the phone: download the latest `DshRemote-1.3.1.apk` from the Releases page → set the server address in Settings → connect.
+On the phone: download the latest `DshRemote-1.4.4.apk` from the Releases page → set the server address in Settings → connect.
 
 > For remote access over HTTPS, also do [4. Tailscale](#4-tailscale-networking) and [5. Caddy](#5-caddy-https-reverse-proxy).
 
@@ -182,7 +200,7 @@ The `dsh` binary is under `node_modules/.bin/`:
 
 ```bash
 npx dsh --version
-# 0.1.0-rc.6
+# 0.1.1-rc.2
 ```
 
 DSH data (sessions, settings, profiles) lives in `~/.dsh` (`C:\Users\<you>\.dsh` on Windows).
@@ -197,14 +215,16 @@ The web profile is a stack of plugin bundles. This project uses:
 |---|---|
 | `@deepseek-ai/dsh-base` | DSH core |
 | `@deepseek-ai/dsh-web-app` | web UI (also hosts `/api` RPC + WebSocket) |
-| `@liustack/modlens` | image / OCR |
 | `dsh-better-sidebar` | sidebar enhancement |
+| `dsh-computer-control` | computer control (screenshot, mouse & keyboard for the model) |
 | `dsh-remote-control` | **this repo**: the `/remote/*` file API for the phone |
+
+> Note: vision is **natively supported by DSH** (`deepseek-v4-flash-vision-exp` and other vision models); `@liustack/modlens` is no longer needed.
 
 ### Option A: official command (recommended)
 
 ```bash
-npx dsh plugin --profile web add dsh-better-sidebar @liustack/modlens
+npx dsh plugin --profile web add dsh-better-sidebar dsh-computer-control
 # link this repo's plugin by its absolute path
 npx dsh plugin --profile web add "file:C:/path/to/dsh-remote/remote-control"
 ```
@@ -352,8 +372,8 @@ Check: ① `dsh web` is running; ② phone and computer can reach each other ove
 **Q: `/plan` doesn't enter plan mode?**
 `/plan` is a host command — it must go through the command channel (the app's "Commands" menu, or a message starting with `/`), not as plain text.
 
-**Q: Can I see images / OCR?**
-Only with the `@liustack/modlens` plugin installed.
+**Q: Can I see images?**
+Yes, when DSH runs a **vision model** (e.g. `deepseek-v4-flash-vision-exp`). Images in the conversation render as thumbnails; tap to open the full-resolution original.
 
 **Q: Can I change the server address?**
 Yes, in Settings; it reconnects automatically.

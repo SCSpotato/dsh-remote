@@ -41,11 +41,11 @@
   DSH 宿主  (dsh web, 127.0.0.1:3080)
         │  ┌─ @deepseek-ai/dsh-base
         │  ├─ @deepseek-ai/dsh-web-app
-        │  ├─ @liustack/modlens         （图像/OCR 引擎）
         │  ├─ dsh-better-sidebar        （侧边栏增强）
+        │  ├─ dsh-computer-control      （电脑控制，供模型调用）
         │  └─ dsh-remote-control        （本仓库：给手机提供的 /remote/* 接口）
         ▼
-  LLM（DeepSeek 等）
+  LLM（DeepSeek 等，含原生 vision 模型）
 ```
 
 - 手机 App 只做「展示 + 交互」，所有会话、工具、文件都在电脑上的 DSH 宿主里。
@@ -55,29 +55,46 @@
 
 ## 功能特性
 
-### 会话管理
+下面按界面模块，详细介绍 App 目前能实现的所有功能（基于 v1.4.4）。
 
-- **会话列表**：展示所有会话 + 实时运行状态（运行中的会话显示蓝色呼吸圆点）。
+### 首页 / Dashboard（图 6）
+
+- **连接状态**：标题栏左侧的圆点实时显示与电脑 DSH 的连接状态（蓝色 = 已连接，灰色 = 未连接）。
+- **DeepSeek 余额卡片**：显示当前 DeepSeek 账户的**余额（CNY）**与「可用」状态；点「刷新」重新查询。
+- **正在运行**：若电脑上正在跑任务，这里会列出「运行中 · 点击查看」的入口，点进去直接跳到对应会话。
+
+### 会话管理（图 2）
+
+- **会话列表**：展示所有会话，正在运行的会话实时标注。
 - **新建 / 归档 / 重命名 / 搜索**：随手新建会话，归档不再需要的，按标题搜索定位。
-- **子代理会话树**：父会话下的子代理一目了然，点进去单独查看子代理的对话。
-- **「刚完成」置顶**：最近 5 分钟内跑完的会话置顶 + 未读红点，方便回来接着看。
+- **子代理**：点「子代理」卡片进入子代理会话树，父会话下的子代理一目了然，点进去单独查看子代理的对话。
+- **工作区**：点「工作区文件」进入文件浏览器（见下）。
 
-### 对话体验
+### 对话 / 轨迹（图 3、图 4）
 
+- **对话 / 轨迹双标签**：顶部可切换「对话」和「轨迹」两个视图。
 - **流式输出**：助手正文与思考过程（reasoning）实时逐字显示。
 - **Markdown 渲染**：标题、粗体、行内代码（灰底）、代码块、链接、多级列表、引用、勾选清单。
 - **Todo 清单**：模型的任务列表实时展示进度。
 - **工具调用卡**：终端命令、文件编辑（diff）、搜索、网页抓取等工具，都折叠成可展开的卡片。
-- **产物列表**：每个回合结束，自动列出本回合新建/修改的文件路径。
+- **产物列表**：每个回合结束，自动列出本回合新建/修改的文件路径（如 `pelican_bike.html`）。
+- **图片缩略图**：对话里的图片（你发或 AI 生成的）以**缩略图**形式显示，**点击即可全屏放大查看清晰原图**。
 - **分支（Fork）与复制**：对任意一条消息一键 fork 出子会话，或复制其文本。
 
-### 输入区
+### 轨迹面板（图 3）
 
-- **模型选择**：切换 provider / model，并可设推理强度。
-- **权限预设**：read-only / workspace-write / danger-full-access 一键切换。
-- **计划模式**：`/plan` 进入计划模式，让模型先出方案、审过再动手。
-- **命令菜单**：内置 `/plan`、`/goal`、`/compact`、`/permission` 等命令（走真实宿生命令通道，不是当文字发）。
-- **图片附件**：拍照/相册发图给模型（需 modlens 插件）。
+三泳道（输入 / 模型 / 工具）时间线，展示每个回合的详细数据：
+
+- **统计栏**：轮次、步骤、模型耗时、工具耗时、首 token 延迟、输入 token 总量、缓存命中率。
+- **上下文用量**：已用上下文百分比（如 53%），并分解为「系统提示词 / 工具 / 对话消息」三部分的 token 占用量。
+- **时间轴**：按顺序 / 时长 / 真实时间查看每一步（模型、工具）的调用。
+
+### 输入区（图 4）
+
+- **命令 / 权限选择器**：底部可直接切换**权限预设**（read-only / workspace-write / danger-full-access），并列出当前生效的命令。
+- **模型选择**：切换 provider / model（如 `deepseek-v4-flash-vision-exp`），并可设推理强度（如 `high`）。
+- **图片发送**：点输入框左侧的附件按钮，可从相册选图或拍照发给模型。
+- **消息输入**：输入框 + 发送按钮；以 `/` 开头的行会走**宿生命令通道**（`/plan`、`/goal`、`/permission` 等），而不是当普通消息发。
 
 ### 决策交互（内联卡片）
 
@@ -87,24 +104,29 @@
 - **工具批准**：`允许一次` / `拒绝`。
 - **AI 提问**：单选 / 多选 + 自定义回答。
 
-### 轨迹面板
+### 工作区文件管理（图 5）
 
-三泳道（输入 / 模型 / 工具）时间线，展示每个回合的：轮次、步骤、耗时、工具调用、token 统计（含缓存命中）。
+通过 `dsh-remote-control` 服务端插件，在手机上浏览电脑工作区目录：
 
-### 文件管理
+- **目录浏览**：进入任意文件夹，看子目录列表。
+- **上传**：把手机上的文件传到电脑当前目录。
+- **下载 / 删除 / 重命名 / 复制**：对文件做全套操作。
 
-通过 `dsh-remote-control` 服务端插件，在手机上浏览电脑工作区目录，上传 / 下载 / 删除 / 重命名 / 复制文件。
+### 设置（图 1）
+
+- **服务器地址**：填写电脑 DSH 的 `https://…:8443` 地址，点「保存并连接」，改完自动重连。
+- **语言**：中文 / English 一键切换。
+- **外观**：浅色 / 深色 / 跟随系统三档主题。
+- **通知**：
+  - **任务完成提醒**：回合完成时发送通知并播放提示音。
+  - **提问 / 批准提醒**：AI 提问或请求批准时发送通知。
+- **DeepSeek 平台**：查询余额 / 用量。
+- **关于**：显示 App 版本号。
 
 ### 通知与后台
 
 - 前台服务常驻，App 退到后台也能收到：任务完成、任务出错、AI 提问、需要批准等系统通知。
 - 点通知直接跳转到对应会话。
-
-### 主题与其它
-
-- 深色 / 浅色 / 跟随系统三档主题。
-- DeepSeek 余额查询（可选，填 API Key 后显示）。
-- 服务器地址可在设置里随时修改，改完自动重连。
 
 ---
 
@@ -144,14 +166,14 @@ mkdir dsh-app && cd dsh-app
 npm install @deepseek-ai/dsh
 
 # 2) 装插件（进入 web profile）
-npx dsh plugin --profile web add dsh-better-sidebar @liustack/modlens
+npx dsh plugin --profile web add dsh-better-sidebar dsh-computer-control
 npx dsh plugin --profile web add "file:C:/path/to/dsh-remote/remote-control"
 
 # 3) 启动
 npx dsh web
 ```
 
-手机端：从 Releases 页面下载最新 `DshRemote-1.3.1.apk` → 设置里填服务器地址 → 连接。
+手机端：从 Releases 页面下载最新 `DshRemote-1.4.4.apk` → 设置里填服务器地址 → 连接。
 
 > 想要外网访问 + HTTPS，再补 [第四步 Tailscale](#第四步tailscale-组网) 和 [第五步 Caddy](#第五步caddy-https-反向代理)。
 
@@ -179,7 +201,7 @@ npm install @deepseek-ai/dsh
 ```bash
 # 直接用 npx 调用（推荐，不用配 PATH）
 npx dsh --version
-# 输出：0.1.0-rc.6
+# 输出：0.1.1-rc.2
 ```
 
 > 也可以 `npm install -g @deepseek-ai/dsh` 全局安装，然后直接 `dsh --version`。
@@ -196,14 +218,16 @@ DSH 的 profile 是一个「插件 bundle 栈」。本项目的 web profile 由�
 |---|---|
 | `@deepseek-ai/dsh-base` | DSH 核心 |
 | `@deepseek-ai/dsh-web-app` | 网页 UI（也承载 `/api` RPC 与 WebSocket） |
-| `@liustack/modlens` | 图像识别/OCR（手机端看图要用） |
 | `dsh-better-sidebar` | 侧边栏增强 |
+| `dsh-computer-control` | 电脑控制（屏幕截图、鼠标键盘，供模型调用） |
 | `dsh-remote-control` | **本仓库**的插件：给手机提供 `/remote/*` 文件接口 |
+
+> 说明：图片识别（vision）由 **DSH 原生支持**（`deepseek-v4-flash-vision-exp` 等视觉模型），不再依赖 `@liustack/modlens`。
 
 ### 方式 A：官方命令（推荐）
 
 ```bash
-npx dsh plugin --profile web add dsh-better-sidebar @liustack/modlens
+npx dsh plugin --profile web add dsh-better-sidebar dsh-computer-control
 # 本仓库的 remote-control 用本地路径（把路径换成你 clone 下来的位置）
 npx dsh plugin --profile web add "file:C:/path/to/dsh-remote/remote-control"
 ```
@@ -348,7 +372,7 @@ gradle assembleRelease
 
 - **RPC**：`POST /api/<method>`，信封 `{"type":"client-request","rpcId":"<uuid>","method":"...","payload":{...}}`，响应 `{"type":"server-response","rpcId":...,"result":{"ok":true,"value":...}}`。
 - **实时事件**：WebSocket `/api/events.mux`，帧类型包括 `session/event`（会话事件流）、`session/queue`、`session/jobs`、`session/projection`、`question/requested`（AI 提问/计划审批）、`approval/requested`（工具批准）等。
-- **命令**：`POST /api/commands/execute`，payload `{"args":{"agentId":"<sessionId>","line":"/plan"}}`，用于执行 `/plan`、`/goal`、`/compact`、`/permission` 等宿生命令（不是当普通消息发）。
+- **命令**：`POST /api/commands/execute`，payload `{"args":{"agentId":"<sessionId>","line":"/plan","images":[]}}`，用于执行 `/plan`、`/goal`、`/compact`、`/permission` 等宿生命令（不是当普通消息发）。命令走的是 Typert Remote 端点，payload 必须用 `{"args":{…}}` 包裹。
 
 ### 关键模块（App 端）
 
@@ -385,8 +409,8 @@ gradle assembleRelease
 **Q：计划模式 `/plan` 不生效？**
 `/plan` 是宿生命令，必须走命令通道（App 的「命令」按钮、或输入框里以 `/` 开头发送），不能当普通文字消息发。详见 App 内「命令」菜单。
 
-**Q：能看到图片 / OCR 吗？**
-需要 `@liustack/modlens` 插件已装，App 端会自动走它。
+**Q：能看到图片吗？**
+需要 DSH 用的是**视觉模型**（如 `deepseek-v4-flash-vision-exp`）。对话里的图片会以缩略图显示，点击可全屏放大查看原图。
 
 **Q：能改服务器地址吗？**
 能，设置页里随时改，改完自动重连。
