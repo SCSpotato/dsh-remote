@@ -60,20 +60,26 @@ A native Android client that remote-controls [DeepSeek Harness (DSH)](https://gi
 
 Below is everything the app can do, organized by screen (v1.4.4).
 
-### Home / Dashboard (image 6)
+### Home / Dashboard
+
+> ![Home / Dashboard](docs/screenshots/home.png)
 
 - **Connection status**: a dot at the top-left of the title bar shows the live connection to your computer (blue = connected, grey = disconnected).
 - **DeepSeek balance card**: shows your current DeepSeek account balance (CNY) and "available" state; tap **Refresh** to re-query.
 - **Running**: if a task is running on the computer, a "running · tap to view" entry appears here and deep-links to that session.
 
-### Session management (image 2)
+### Session management
+
+> ![Session management](docs/screenshots/sessions.png)
 
 - Session list with live running state.
 - New / archive / rename / search sessions.
 - **Subagents**: open the subagent tree, see the children of each parent session and open them separately.
 - **Workspace**: open the file browser (see below).
 
-### Chat / Trajectory (images 3, 4)
+### Chat / Trajectory
+
+> ![Chat view](docs/screenshots/chat.png)  ![Chat + composer](docs/screenshots/chat-input.png)
 
 - **Chat / Trajectory tabs**: switch between the conversation and the trajectory view at the top.
 - Streaming output for both the assistant text and its reasoning.
@@ -84,7 +90,9 @@ Below is everything the app can do, organized by screen (v1.4.4).
 - **Image thumbnails**: images in the conversation render as thumbnails; **tap to open the full-resolution original**.
 - Fork & copy on any message.
 
-### Trajectory panel (image 3)
+### Trajectory panel
+
+> ![Trajectory panel](docs/screenshots/chat.png)
 
 A three-lane (input / model / tools) timeline with per-turn details:
 
@@ -92,7 +100,9 @@ A three-lane (input / model / tools) timeline with per-turn details:
 - **Context usage**: percentage of context used (e.g. 53%), broken down into system prompt / tools / chat messages token usage.
 - **Timeline**: view each step (model / tool) by order / duration / real time.
 
-### Composer (image 4)
+### Composer
+
+> ![Composer](docs/screenshots/chat-input.png)
 
 - **Command / permission selector**: switch permission presets (read-only / workspace-write / danger-full-access) and see the active command.
 - **Model selection**: switch provider / model (e.g. `deepseek-v4-flash-vision-exp`) and set reasoning effort (e.g. `high`).
@@ -107,7 +117,9 @@ Plan review, tool approval, and AI questions render as **inline cards at the bot
 - Tool approval: `Allow once` / `Reject`.
 - AI question: single / multi select + custom answer.
 
-### Workspace files (image 5)
+### Workspace files
+
+> ![Workspace files](docs/screenshots/files.png)
 
 Browse the computer's workspace directory via the `dsh-remote-control` plugin:
 
@@ -115,7 +127,9 @@ Browse the computer's workspace directory via the `dsh-remote-control` plugin:
 - Upload a file from the phone to the current folder.
 - Download / delete / rename / copy files.
 
-### Settings (image 1)
+### Settings
+
+> ![Settings](docs/screenshots/settings.png)
 
 - **Server address**: fill in the computer's `https://…:8443` URL, tap **Save & connect**; it reconnects automatically when changed.
 - **Language**: Chinese / English.
