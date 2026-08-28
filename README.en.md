@@ -111,6 +111,8 @@ A three-lane (input / model / tools) timeline with per-turn details:
 
 ### Decision cards (inline)
 
+> ![AI question / single-select](docs/screenshots/decision-ask.png)  ![Plan review](docs/screenshots/decision-plan.png)
+
 Plan review, tool approval, and AI questions render as **inline cards at the bottom of the conversation** — never as a modal covering the chat:
 
 - Plan review: `Approve` / `Keep planning` (accent bar + icon, scrollable long plans).
