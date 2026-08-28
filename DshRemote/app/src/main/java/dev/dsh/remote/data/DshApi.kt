@@ -350,6 +350,12 @@ class DshApi(private val rpc: RpcClient) {
         return json.decodeFromString(DirectoryListingValue.serializer(), text)
     }
 
+    /** Create a folder inside a directory via the remote-control route. */
+    suspend fun mkdirFile(dir: String, name: String) {
+        val payload = buildJsonObject { put("dir", dir); put("name", name) }
+        rpc.postJson("/remote/mkdir", payload.toString())
+    }
+
     /** Download a file's bytes via the remote-control file route. */
     suspend fun downloadFile(path: String): ByteArray {
         val q = "?path=" + URLEncoder.encode(path, "UTF-8")

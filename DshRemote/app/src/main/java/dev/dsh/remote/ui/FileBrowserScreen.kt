@@ -89,6 +89,8 @@ fun FileBrowserScreen(
     var renameTarget by remember { mutableStateOf<DirEntry?>(null) }
     var renameText by remember { mutableStateOf("") }
     var deleteTarget by remember { mutableStateOf<DirEntry?>(null) }
+    var showMkdir by remember { mutableStateOf(false) }
+    var mkdirText by remember { mutableStateOf("") }
 
     val uploadLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         val dir = path ?: return@rememberLauncherForActivityResult
@@ -143,6 +145,10 @@ fun FileBrowserScreen(
             if (pickMode) {
                 TextButton(onClick = { path?.let(onPickDirectory) }) { Text(Strings.str("choose_this_dir")) }
             } else {
+                TextButton(
+                    enabled = path != null,
+                    onClick = { mkdirText = ""; showMkdir = true },
+                ) { Text(Strings.str("new_folder")) }
                 TextButton(
                     enabled = !uploading,
                     onClick = { uploadLauncher.launch("*/*") },
@@ -326,6 +332,29 @@ fun FileBrowserScreen(
                 }) { Text(Strings.str("ok")) }
             },
             dismissButton = { TextButton(onClick = { renameTarget = null }) { Text(Strings.str("cancel")) } },
+        )
+    }
+
+    if (showMkdir) {
+        AlertDialog(
+            onDismissRequest = { showMkdir = false },
+            title = { Text(Strings.str("new_folder")) },
+            text = {
+                OutlinedTextField(
+                    value = mkdirText,
+                    onValueChange = { mkdirText = it },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val name = mkdirText.trim()
+                    showMkdir = false
+                    if (name.isNotEmpty()) vm.mkdir(name) { err -> if (err != null) actionError = err }
+                }) { Text(Strings.str("create")) }
+            },
+            dismissButton = { TextButton(onClick = { showMkdir = false }) { Text(Strings.str("cancel")) } },
         )
     }
 

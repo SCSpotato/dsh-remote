@@ -243,9 +243,40 @@ function registerRoutes(scope, ctx, { agents, token, handles, modelSelection }) 
       if (req.method !== 'GET') { res.writeHead(405); return res.end() }
       try {
         const url = new URL(req.url, 'http://localhost')
-        const target = (url.searchParams.get('path') || '').trim() || process.cwd()
+        const raw = (url.searchParams.get('path') || '').trim()
+
+        // Root selection: with no path, enumerate drive roots (Windows).
+        if (raw === '') {
+          const drives = []
+          for (let c = 65; c <= 90; c += 1) {
+            const letter = String.fromCharCode(c)
+            const root = `${letter}:\\`
+            try { await stat(root) } catch { continue }
+            drives.push({ name: root, path: root, isDirectory: true, size: 0, mtime: 0 })
+          }
+          sendJson(res, 200, { path: '', parent: '', drives, entries: drives })
+          return
+        }
+
+        const target = raw
         const st = await stat(target)
         if (!st.isDirectory()) { sendJson(res, 400, { error: 'not a directory' }); return }
+
+        // A drive root (e.g. "C:\") is a drive-selector stop; show the drive
+        // list so the user can navigate to another (D:, E:, ...) drive.
+        const isDriveRoot = /^[A-Za-z]:\\?$/.test(target)
+        if (isDriveRoot) {
+          const drives = []
+          for (let c = 65; c <= 90; c += 1) {
+            const letter = String.fromCharCode(c)
+            const root = `${letter}:\\`
+            try { await stat(root) } catch { continue }
+            drives.push({ name: root, path: root, isDirectory: true, size: 0, mtime: 0 })
+          }
+          sendJson(res, 200, { path: '', parent: '', drives, entries: drives })
+          return
+        }
+
         const dirents = await readdir(target, { withFileTypes: true })
         const entries = []
         for (const d of dirents) {
@@ -265,7 +296,10 @@ function registerRoutes(scope, ctx, { agents, token, handles, modelSelection }) 
           a.isDirectory === b.isDirectory
             ? a.name.localeCompare(b.name)
             : a.isDirectory ? -1 : 1)
-        sendJson(res, 200, { path: target, parent: dirname(target), entries })
+        // Normal directory: parent is its parent dir, unless it's a drive root
+        // (handled above, where parent is sent as '' to signal the selector).
+        const parent = dirname(target)
+        sendJson(res, 200, { path: target, parent, entries })
       } catch (e) {
         sendJson(res, 500, { error: String((e && e.message) || e) })
       }
@@ -385,6 +419,32 @@ function registerRoutes(scope, ctx, { agents, token, handles, modelSelection }) 
         while (await pathExists(dest)) { dest = `${base}-copy-${n}${ext}`; n += 1 }
         await copyFile(target, dest)
         sendJson(res, 200, { path: dest })
+      } catch (e) {
+        sendJson(res, 500, { error: String((e && e.message) || e) })
+      }
+    },
+  })
+
+  // Create a folder (POST { dir, name }) in a directory, then return its path.
+  webServer.register({
+    kind: 'exact',
+    path: '/remote/mkdir',
+    handler: async (req, res) => {
+      if (req.method !== 'POST') { res.writeHead(405); return res.end() }
+      try {
+        const body = await readJson(req)
+        const dir = String((body && body.dir) || '').trim()
+        const name = String((body && body.name) || '').trim()
+        if (!name) { sendJson(res, 400, { error: 'name is required' }); return }
+        if (name.includes('/') || name.includes('\\') || name === '.' || name === '..') {
+          sendJson(res, 400, { error: 'invalid name' }); return
+        }
+        const st = await stat(dir)
+        if (!st.isDirectory()) { sendJson(res, 400, { error: 'not a directory' }); return }
+        const target = join(dir, name)
+        const { mkdir } = await import('node:fs/promises')
+        await mkdir(target)
+        sendJson(res, 200, { path: target })
       } catch (e) {
         sendJson(res, 500, { error: String((e && e.message) || e) })
       }

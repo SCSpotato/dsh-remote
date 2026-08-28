@@ -39,6 +39,7 @@ data class DirectoryListingValue(
     val path: String,
     val parent: String = "",
     val entries: List<DirEntry> = emptyList(),
+    val drives: List<DirEntry> = emptyList(),
 )
 
 @Serializable

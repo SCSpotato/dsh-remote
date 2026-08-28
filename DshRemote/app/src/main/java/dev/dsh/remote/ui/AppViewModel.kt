@@ -1458,8 +1458,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val listing = withContext(Dispatchers.Default) { api?.listDirectory(path) } ?: return@launch
                 _dirPath.value = listing.path
-                _dirParent.value = listing.parent.takeIf { it.isNotBlank() && it != listing.path }
-                _dirEntries.value = listing.entries
+                // A drive-selector screen (drives non-empty) has no parent; hide "up".
+                val isDriveScreen = listing.drives.isNotEmpty()
+                _dirParent.value = if (isDriveScreen) null
+                    else listing.parent.takeIf { it.isNotBlank() && it != listing.path }
+                _dirEntries.value = if (listing.drives.isNotEmpty()) listing.drives else listing.entries
             } catch (e: Exception) {
                 _dirError.value = e.message ?: "list failed"
             } finally {
@@ -1538,6 +1541,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 onDone(null)
             } catch (e: Exception) {
                 toast(Strings.str("copy_failed_fmt", e.message))
+                onDone(e.message)
+            }
+        }
+    }
+
+    /** Create a folder in the current directory, then refresh. */
+    fun mkdir(name: String, onDone: (String?) -> Unit = {}) {
+        val dir = _dirPath.value ?: return
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.Default) { api?.mkdirFile(dir, name) }
+                listDir(dir)
+                toast(Strings.str("mkdir_ok_fmt", name))
+                onDone(null)
+            } catch (e: Exception) {
+                toast(Strings.str("mkdir_failed_fmt", e.message))
                 onDone(e.message)
             }
         }
