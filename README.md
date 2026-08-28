@@ -67,7 +67,7 @@
 
 ### 会话管理
 
-> ![会话管理](docs/screenshots/sessions.png)
+> ![会话管理](docs/screenshots/sessions.png) 　 ![子代理树](docs/screenshots/subagent.png)
 
 - **会话列表**：展示所有会话，正在运行的会话实时标注。
 - **新建 / 归档 / 重命名 / 搜索**：随手新建会话，归档不再需要的，按标题搜索定位。
@@ -76,7 +76,7 @@
 
 ### 对话 / 轨迹
 
-> ![对话视图](docs/screenshots/chat.png) 　 ![工具调用 / Todo / 产物](docs/screenshots/chat-tools.png)
+> ![对话视图](docs/screenshots/chat.png)
 
 - **对话 / 轨迹双标签**：顶部可切换「对话」和「轨迹」两个视图。
 - **流式输出**：助手正文与思考过程（reasoning）实时逐字显示。
@@ -89,7 +89,7 @@
 
 ### 轨迹面板
 
-> ![轨迹面板](docs/screenshots/chat.png)
+> ![轨迹面板](docs/screenshots/trajectory.png)
 
 三泳道（输入 / 模型 / 工具）时间线，展示每个回合的详细数据：
 
@@ -99,7 +99,7 @@
 
 ### 输入区
 
-> ![输入区](docs/screenshots/chat-decisions.png)
+> ![输入区](docs/screenshots/chat.png)
 
 - **命令 / 权限选择器**：底部可直接切换**权限预设**（read-only / workspace-write / danger-full-access），并列出当前生效的命令。
 - **模型选择**：切换 provider / model（如 `deepseek-v4-flash-vision-exp`），并可设推理强度（如 `high`）。
@@ -107,8 +107,6 @@
 - **消息输入**：输入框 + 发送按钮；以 `/` 开头的行会走**宿生命令通道**（`/plan`、`/goal`、`/permission` 等），而不是当普通消息发。
 
 ### 决策交互（内联卡片）
-
-> ![决策卡片](docs/screenshots/chat-decisions.png)
 
 计划审批、工具批准、AI 提问这三类决策，都以**卡片形式内联在对话流底部**，不会弹窗盖住聊天内容：
 

@@ -70,7 +70,7 @@ Below is everything the app can do, organized by screen (v1.4.4).
 
 ### Session management
 
-> ![Session management](docs/screenshots/sessions.png)
+> ![Session management](docs/screenshots/sessions.png)  ![Subagent tree](docs/screenshots/subagent.png)
 
 - Session list with live running state.
 - New / archive / rename / search sessions.
@@ -79,7 +79,7 @@ Below is everything the app can do, organized by screen (v1.4.4).
 
 ### Chat / Trajectory
 
-> ![Chat view](docs/screenshots/chat.png)  ![Tool call / Todo / deliverables](docs/screenshots/chat-tools.png)
+> ![Chat view](docs/screenshots/chat.png)
 
 - **Chat / Trajectory tabs**: switch between the conversation and the trajectory view at the top.
 - Streaming output for both the assistant text and its reasoning.
@@ -92,7 +92,7 @@ Below is everything the app can do, organized by screen (v1.4.4).
 
 ### Trajectory panel
 
-> ![Trajectory panel](docs/screenshots/chat.png)
+> ![Trajectory panel](docs/screenshots/trajectory.png)
 
 A three-lane (input / model / tools) timeline with per-turn details:
 
@@ -102,7 +102,7 @@ A three-lane (input / model / tools) timeline with per-turn details:
 
 ### Composer
 
-> ![Composer](docs/screenshots/chat-decisions.png)
+> ![Composer](docs/screenshots/chat.png)
 
 - **Command / permission selector**: switch permission presets (read-only / workspace-write / danger-full-access) and see the active command.
 - **Model selection**: switch provider / model (e.g. `deepseek-v4-flash-vision-exp`) and set reasoning effort (e.g. `high`).
@@ -110,8 +110,6 @@ A three-lane (input / model / tools) timeline with per-turn details:
 - **Message input**: input box + send button; lines starting with `/` go through the **host command channel** (`/plan`, `/goal`, `/permission`, etc.), not as plain text.
 
 ### Decision cards (inline)
-
-> ![Decision cards](docs/screenshots/chat-decisions.png)
 
 Plan review, tool approval, and AI questions render as **inline cards at the bottom of the conversation** — never as a modal covering the chat:
 
