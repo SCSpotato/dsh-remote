@@ -1462,8 +1462,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val isDriveScreen = listing.drives.isNotEmpty()
                 // A drive root (e.g. "C:\") can still go back up to the drive selector,
                 // so treat it like a parent is available (target the selector = null).
-                val isDriveRoot = Regex("^[A-Za-z]:\\?.*").matches(listing.path) &&
-                    (listing.parent.isNullOrBlank())
+                // Regex matches "X:" or "X:\" or "X:/" (a bare drive letter root).
+                val isDriveRoot = Regex("^[A-Za-z]:[\\\\/]?$").matches(listing.path)
                 _dirParent.value = when {
                     isDriveScreen -> null
                     isDriveRoot -> ""   // sentinel: up goes to drive selector

@@ -13,8 +13,8 @@ android {
         applicationId = "dev.dsh.remote"
         minSdk = 26
         targetSdk = 35
-        versionCode = 80
-        versionName = "1.5.2"
+        versionCode = 81
+        versionName = "1.5.3"
     }
 
     // Signing is read from `keystore.properties` (git-ignored) so the private
@@ -74,6 +74,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.ui:ui-tooling-preview")
 }
+
 
 
 
