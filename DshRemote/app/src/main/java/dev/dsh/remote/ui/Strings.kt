@@ -281,6 +281,7 @@ object Strings {
         "reasoning_effort" to ("推理" to "Reasoning"),
         "msg_queue" to ("消息队列 ({0})" to "Message queue ({0})"),
         "attachment" to ("附件" to "Attachment"),
+        "attachments" to ("个附件" to "attachment(s)"),
         "image_attachment" to ("图片附件" to "Image attachment"),
 
         // ---- main screen ----

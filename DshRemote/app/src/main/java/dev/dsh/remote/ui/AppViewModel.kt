@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.dsh.remote.data.ChatItem
 import dev.dsh.remote.data.DshApi
+import dev.dsh.remote.data.ImageData
 import dev.dsh.remote.data.QuestionItem
 import dev.dsh.remote.data.SessionEvent
 import dev.dsh.remote.data.SessionHistoryValue
@@ -1033,6 +1034,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 api?.sessionPromptImageText(sessionId, mediaType, base64, name, text)
+            } catch (e: Exception) {
+                _error.value = e.message
+                toast(attachmentErrorMessage(e))
+            }
+        }
+    }
+
+    /** Send multiple images (+ optional text) together as one user prompt. */
+    fun sendImagesText(sessionId: String, images: List<ImageData>, text: String) {
+        _running.value = true
+        runningBySession[sessionId] = true
+        _draft.value = ""
+        draftBySession.remove(sessionId)
+        persistDrafts()
+        viewModelScope.launch {
+            try {
+                api?.sessionPromptImages(sessionId, images, text)
             } catch (e: Exception) {
                 _error.value = e.message
                 toast(attachmentErrorMessage(e))

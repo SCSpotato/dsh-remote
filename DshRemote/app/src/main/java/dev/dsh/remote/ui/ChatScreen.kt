@@ -77,6 +77,7 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import dev.dsh.remote.data.ChatItem
+import dev.dsh.remote.data.ImageData
 import dev.dsh.remote.data.ImageRef
 import dev.dsh.remote.data.textOf
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -908,16 +909,21 @@ private fun Composer(vm: AppViewModel, currentModel: String, running: Boolean) {
 
     val context = LocalContext.current
     val pickScope = rememberCoroutineScope()
-    var pendingImage by remember { mutableStateOf<PendingImage?>(null) }
-    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) {
+    var pendingImages by remember { mutableStateOf<List<PendingImage>>(emptyList()) }
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isNotEmpty()) {
             pickScope.launch {
                 try {
-                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return@launch
-                    val mediaType = context.contentResolver.getType(uri) ?: "image/png"
-                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                    val bitmap = decodeThumbnail(bytes)
-                    pendingImage = PendingImage(mediaType, base64, uri.lastPathSegment, bitmap)
+                    val loaded = uris.mapNotNull { uri ->
+                        try {
+                            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return@mapNotNull null
+                            val mediaType = context.contentResolver.getType(uri) ?: "image/png"
+                            val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                            val bitmap = decodeThumbnail(bytes)
+                            PendingImage(mediaType, base64, uri.lastPathSegment, bitmap)
+                        } catch (_: Exception) { null }
+                    }
+                    pendingImages = pendingImages + loaded
                 } catch (_: Exception) {}
             }
         }
@@ -1042,30 +1048,55 @@ private fun Composer(vm: AppViewModel, currentModel: String, running: Boolean) {
                 }
             }
         }
-        pendingImage?.let { img ->
+        if (pendingImages.isNotEmpty()) {
             Row(
                 Modifier.fillMaxWidth().padding(bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                img.bitmap?.let { bmp ->
-                    Image(
-                        bitmap = bmp.asImageBitmap(),
-                        contentDescription = Strings.str("attachment"),
-                        modifier = Modifier
-                            .size(56.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
-                    )
-                    Spacer(Modifier.width(8.dp))
+                Row(
+                    Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    pendingImages.forEachIndexed { index, img ->
+                        Box {
+                            img.bitmap?.let { bmp ->
+                                Image(
+                                    bitmap = bmp.asImageBitmap(),
+                                    contentDescription = Strings.str("attachment"),
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
+                                )
+                            }
+                            Box(
+                                Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(18.dp)
+                                    .background(DshRed, CircleShape)
+                                    .clickable { pendingImages = pendingImages.filterIndexed { i, _ -> i != index } },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text("×", color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                    if (pendingImages.size == 1) {
+                        val img = pendingImages[0]
+                        Text(
+                            img.name ?: Strings.str("image_attachment"),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
+                    } else {
+                        Text(
+                            "${pendingImages.size} ${Strings.str("attachments")}",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                 }
-                Text(
-                    img.name ?: Strings.str("image_attachment"),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = { pendingImage = null }) { Text(Strings.str("remove"), style = MaterialTheme.typography.labelSmall, color = DshRed) }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1098,14 +1129,15 @@ private fun Composer(vm: AppViewModel, currentModel: String, running: Boolean) {
             }
             IconButton(
                 onClick = {
-                    val img = pendingImage
+                    val imgs = pendingImages
                     val sessionId = vm.currentSessionId.value
-                    if (img != null && sessionId != null) {
-                        vm.sendImageText(sessionId, img.mediaType, img.base64, img.name, draft)
-                        pendingImage = null
+                    if (imgs.isNotEmpty() && sessionId != null) {
+                        val data = imgs.map { ImageData(it.mediaType, it.base64, it.name) }
+                        vm.sendImagesText(sessionId, data, draft)
+                        pendingImages = emptyList()
                     } else if (running) vm.enqueue(draft) else vm.send(draft)
                 },
-                enabled = draft.isNotBlank() || pendingImage != null,
+                enabled = draft.isNotBlank() || pendingImages.isNotEmpty(),
                 modifier = Modifier.size(48.dp),
             ) {
                 DshIcon(

@@ -157,6 +157,28 @@ class DshApi(private val rpc: RpcClient) {
         rpc.invoke("session.prompt", payload)
     }
 
+    /** Send multiple images (+ optional text) as one user prompt. */
+    suspend fun sessionPromptImages(sessionId: String, images: List<ImageData>, text: String) {
+        val payload = buildJsonObject {
+            put("sessionId", sessionId)
+            put("mode", "queue")
+            putJsonArray("content") {
+                for (img in images) {
+                    addJsonObject {
+                        put("type", "image")
+                        put("mediaType", img.mediaType)
+                        put("data", img.base64)
+                        img.name?.let { put("name", it) }
+                    }
+                }
+                if (text.isNotBlank()) {
+                    addJsonObject { put("type", "text"); put("text", text) }
+                }
+            }
+        }
+        rpc.invoke("session.prompt", payload)
+    }
+
     /** Archive (remove) a session from the active list. */
     suspend fun archiveSession(sessionId: String) {
         val payload = buildJsonObject { put("sessionId", sessionId) }
@@ -373,6 +395,13 @@ data class QuestionAnswer(
     val id: String,
     val selected: List<String> = emptyList(),
     val custom: String? = null,
+)
+
+/** One image payload for a multi-image prompt (base64). */
+data class ImageData(
+    val mediaType: String,
+    val base64: String,
+    val name: String? = null,
 )
 
 /** A durable image attachment fetched from the host (bytes as base64). */
