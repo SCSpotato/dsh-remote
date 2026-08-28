@@ -142,6 +142,16 @@ Browse the computer's workspace directory via the `dsh-remote-control` plugin:
 - **DeepSeek platform**: check balance / usage.
 - **About**: shows the app version.
 
+### Goal / Todo / Background jobs
+
+> ![Goal / Todo / background jobs](docs/screenshots/goal-todo-jobs.png)
+
+In the conversation, the running goal, its task list, and any background jobs surface as inline cards, live:
+
+- **Goal**: the current goal title with its status (`active`), with **Pause / Complete**.
+- **Todo**: the model's task list, checked item by item (done / in-progress / pending).
+- **Jobs**: shell / commands running in the background, showing the command and a "running" state.
+
 ### Notifications & background
 
 A foreground service keeps the app alive in the background and posts system notifications for: task done, task error, AI question, and approval requests. Tapping a notification deep-links to the right session.
