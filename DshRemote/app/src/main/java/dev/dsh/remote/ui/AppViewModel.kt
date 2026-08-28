@@ -1460,8 +1460,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 _dirPath.value = listing.path
                 // A drive-selector screen (drives non-empty) has no parent; hide "up".
                 val isDriveScreen = listing.drives.isNotEmpty()
-                _dirParent.value = if (isDriveScreen) null
-                    else listing.parent.takeIf { it.isNotBlank() && it != listing.path }
+                // A drive root (e.g. "C:\") can still go back up to the drive selector,
+                // so treat it like a parent is available (target the selector = null).
+                val isDriveRoot = Regex("^[A-Za-z]:\\?.*").matches(listing.path) &&
+                    (listing.parent.isNullOrBlank())
+                _dirParent.value = when {
+                    isDriveScreen -> null
+                    isDriveRoot -> ""   // sentinel: up goes to drive selector
+                    else -> listing.parent.takeIf { it.isNotBlank() && it != listing.path }
+                }
                 _dirEntries.value = if (listing.drives.isNotEmpty()) listing.drives else listing.entries
             } catch (e: Exception) {
                 _dirError.value = e.message ?: "list failed"
@@ -1473,7 +1480,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun navigateUp() {
         val parent = _dirParent.value ?: return
-        listDir(parent)
+        // "" sentinel means "at a drive root" -> go to the drive selector (null path).
+        val target = if (parent.isEmpty()) null else parent
+        listDir(target)
     }
 
     /** Download a file's bytes (called from the browser UI). */

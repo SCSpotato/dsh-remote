@@ -262,21 +262,6 @@ function registerRoutes(scope, ctx, { agents, token, handles, modelSelection }) 
         const st = await stat(target)
         if (!st.isDirectory()) { sendJson(res, 400, { error: 'not a directory' }); return }
 
-        // A drive root (e.g. "C:\") is a drive-selector stop; show the drive
-        // list so the user can navigate to another (D:, E:, ...) drive.
-        const isDriveRoot = /^[A-Za-z]:\\?$/.test(target)
-        if (isDriveRoot) {
-          const drives = []
-          for (let c = 65; c <= 90; c += 1) {
-            const letter = String.fromCharCode(c)
-            const root = `${letter}:\\`
-            try { await stat(root) } catch { continue }
-            drives.push({ name: root, path: root, isDirectory: true, size: 0, mtime: 0 })
-          }
-          sendJson(res, 200, { path: '', parent: '', drives, entries: drives })
-          return
-        }
-
         const dirents = await readdir(target, { withFileTypes: true })
         const entries = []
         for (const d of dirents) {
@@ -296,9 +281,9 @@ function registerRoutes(scope, ctx, { agents, token, handles, modelSelection }) 
           a.isDirectory === b.isDirectory
             ? a.name.localeCompare(b.name)
             : a.isDirectory ? -1 : 1)
-        // Normal directory: parent is its parent dir, unless it's a drive root
-        // (handled above, where parent is sent as '' to signal the selector).
-        const parent = dirname(target)
+        // For a drive root (e.g. "C:\"), dirname() returns the same path, so
+        // parent is "" to signal "at drive root; tap up to pick another drive".
+        const parent = dirname(target) === target ? '' : dirname(target)
         sendJson(res, 200, { path: target, parent, entries })
       } catch (e) {
         sendJson(res, 500, { error: String((e && e.message) || e) })
